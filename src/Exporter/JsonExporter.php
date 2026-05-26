@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/ExporterInterface.php';
 require_once __DIR__ . '/AnnonceArrayConverter.php';
 
@@ -12,7 +14,9 @@ class JsonExporter implements ExporterInterface
             $annonces
         );
 
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        return $json === false ? '[]' : $json;
     }
 
     public function getContentType(): string

@@ -1,14 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/Annonce.php';
 
 class AnnonceVente extends Annonce
 {
     protected float $prix;
 
-    public function __construct(BienImmo $bien, float $prix, ?DateTimeImmutable $datePublication = null)
-    {
-        parent::__construct($bien, $datePublication);
+    public function __construct(
+        BienImmo $bien,
+        int|float $prix,
+        ?DateTimeImmutable $datePublication = null,
+        EtatAnnonce $etat = EtatAnnonce::Disponible,
+    ) {
+        parent::__construct($bien, $datePublication, $etat);
         $this->setPrix($prix);
     }
 
@@ -17,12 +23,12 @@ class AnnonceVente extends Annonce
         return $this->prix;
     }
 
-    public function setPrix(float $prix): void
+    public function setPrix(int|float $prix): void
     {
         if ($prix <= 0) {
             throw new InvalidArgumentException('Le prix de vente ne peut pas être négatif ou égal à zéro.');
         }
-        $this->prix = $prix;
+        $this->prix = (float) $prix;
     }
 
     public function getPrixM2(): float
@@ -30,9 +36,9 @@ class AnnonceVente extends Annonce
         return $this->prix / $this->bien->getSurface();
     }
 
-    public function calculerRentabilite(float $loyerMensuel): float
+    public function calculerRentabilite(int|float $loyerMensuel): float
     {
-        return (($loyerMensuel * 12) / $this->prix) * 100;
+        return (((float) $loyerMensuel * 12) / $this->prix) * 100;
     }
 
     public function getTypeTransaction(): string

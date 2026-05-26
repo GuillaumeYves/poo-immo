@@ -24,7 +24,8 @@ poo-immo/
     │   ├── Maison.php              # BienImmo + type de bien maison
     │   ├── Annonce.php             # Classe abstraite
     │   ├── AnnonceVente.php        # Annonce + type d'annonce vente
-    │   └── AnnonceLocation.php     # Annonce + type d'annonce location
+    │   ├── AnnonceLocation.php     # Annonce + type d'annonce location
+    │   └── EtatAnnonce.php         # Enum tiré (string) : Disponible / EnNegociation / Indisponible
     ├── Repository/
     │   └── AnnonceRepository.php   # Collection en mémoire + recherches (ville, transaction, type)
     ├── Presenter/
@@ -40,14 +41,23 @@ poo-immo/
 
 - `BienImmo` (abstraite) ⟵ `Appartement`, `Maison`
 - `Annonce` (abstraite) ⟵ `AnnonceVente`, `AnnonceLocation`
-- Une `Annonce` **a un** `BienImmo`.
+- Une `Annonce` **a un** `BienImmo` **et un** `EtatAnnonce`.
+
+## Typage PHP
+
+Le projet exploite plusieurs fonctionnalités du système de types de PHP 8 :
+
+- **`declare(strict_types=1);`** en tête de chaque fichier refus des conversions implicites sur les paramètres et retours.
+- **Types nullable (`?Type`)** ex. `findOneByVille(string $ville): ?Annonce`, `?DateTimeImmutable $datePublication = null`, `?string $description` sur `BienImmo`.
+- **Types union (`int|float`)** sur les setters numériques (`setSurface`, `setPrix`, `setLoyer`, `setCharges`, `setTerrain`) pour accepter aussi bien `180000` que `180000.0`.
+- **Enum tiré (`enum EtatAnnonce: string`)** états métier d'une annonce avec un `match` exhaustif pour le libellé, et la valeur string utilisée directement pour la sérialisation JSON/CSV et les classes CSS.
 
 ## Export du catalogue
 
 Deux formats disponibles, accessibles depuis les boutons en haut de la page ou directement via URL :
 
-| Format | URL              | Fichier généré             |
-| ------ | ---------------- | ----------------------------- |
+| Format | URL            | Fichier généré              |
+| ------ | -------------- | --------------------------- |
 | JSON   | `?export=json` | `catalogue-AAAA-MM-JJ.json` |
 | CSV    | `?export=csv`  | `catalogue-AAAA-MM-JJ.csv`  |
 

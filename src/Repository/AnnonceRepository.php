@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../Entity/Annonce.php';
 
 class AnnonceRepository
@@ -16,6 +18,17 @@ class AnnonceRepository
     public function findAll(): array
     {
         return $this->annonces;
+    }
+
+    public function findOneByVille(string $ville): ?Annonce
+    {
+        foreach ($this->annonces as $annonce) {
+            if (strcasecmp($annonce->getBien()->getVille(), $ville) === 0) {
+                return $annonce;
+            }
+        }
+
+        return null;
     }
 
     /** @return Annonce[] */

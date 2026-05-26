@@ -1,16 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 abstract class BienImmo
 {
     protected string $ville;
     protected float $surface;
     protected int $chambres;
+    protected ?string $description = null;
 
-    public function __construct(string $ville, float $surface, int $chambres)
+    public function __construct(string $ville, int|float $surface, int $chambres, ?string $description = null)
     {
         $this->setVille($ville);
         $this->setSurface($surface);
         $this->setChambres($chambres);
+        $this->setDescription($description);
     }
 
     public function getVille(): string
@@ -31,12 +35,22 @@ abstract class BienImmo
         return $this->surface;
     }
 
-    public function setSurface(float $surface): void
+    public function setSurface(int|float $surface): void
     {
         if ($surface <= 0) {
             throw new InvalidArgumentException('La surface ne peut pas être négative ou égale à zéro.');
         }
-        $this->surface = $surface;
+        $this->surface = (float) $surface;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): void
+    {
+        $this->description = $description !== null && trim($description) === '' ? null : $description;
     }
 
     public function getChambres(): int

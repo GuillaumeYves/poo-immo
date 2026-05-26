@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/src/Entity/Appartement.php';
 require_once __DIR__ . '/src/Entity/Maison.php';
+require_once __DIR__ . '/src/Entity/EtatAnnonce.php';
 require_once __DIR__ . '/src/Entity/AnnonceVente.php';
 require_once __DIR__ . '/src/Entity/AnnonceLocation.php';
 require_once __DIR__ . '/src/Repository/AnnonceRepository.php';
@@ -14,10 +17,10 @@ $repository = new AnnonceRepository();
 $presenter  = new BienPresenter();
 
 $repository->add(new AnnonceVente(new Appartement('Lyon', 45, 2, 3), 180000));
-$repository->add(new AnnonceVente(new Appartement('Paris', 30, 1, 5), 320000));
+$repository->add(new AnnonceVente(new Appartement('Paris', 30, 1, 5), 320000, null, EtatAnnonce::EnNegociation));
 $repository->add(new AnnonceLocation(new Appartement('Marseille', 60, 3, 1), 850, 120));
-$repository->add(new AnnonceVente(new Maison('Toulouse', 120, 4, 500), 380000));
-$repository->add(new AnnonceLocation(new Maison('Bordeaux', 95, 3, 200), 1200, 150));
+$repository->add(new AnnonceVente(new Maison('Toulouse', 120, 4, 500), 380000, null, EtatAnnonce::Indisponible));
+$repository->add(new AnnonceLocation(new Maison('Bordeaux', 95, 3, 200), 1200, 150, null, EtatAnnonce::EnNegociation));
 
 /** @var ExporterInterface[] $exporters */
 $exporters = [];
@@ -61,7 +64,7 @@ $catalogue = $presenter->presenterCatalogue($repository->findAll());
 
     <?php foreach ($catalogue['annonces'] as $i => $annonce): ?>
         <?php if ($i > 0): ?><hr><?php endif; ?>
-        <article class="annonce annonce--<?= strtolower($annonce['transaction']) ?>">
+        <article class="annonce annonce--<?= strtolower($annonce['transaction']) ?> annonce--etat-<?= htmlspecialchars($annonce['etat'], ENT_QUOTES, 'UTF-8') ?>">
             <h3><?= htmlspecialchars($annonce['titre'], ENT_QUOTES, 'UTF-8') ?></h3>
             <p class="annonce__meta">
                 <?php foreach ($annonce['meta'] as $j => $ligne): ?>

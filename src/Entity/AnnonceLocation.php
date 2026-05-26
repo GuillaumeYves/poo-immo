@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/Annonce.php';
 
 class AnnonceLocation extends Annonce
@@ -9,11 +11,12 @@ class AnnonceLocation extends Annonce
 
     public function __construct(
         BienImmo $bien,
-        float $loyer,
-        float $charges = 0.0,
+        int|float $loyer,
+        int|float $charges = 0.0,
         ?DateTimeImmutable $datePublication = null,
+        EtatAnnonce $etat = EtatAnnonce::Disponible,
     ) {
-        parent::__construct($bien, $datePublication);
+        parent::__construct($bien, $datePublication, $etat);
         $this->setLoyer($loyer);
         $this->setCharges($charges);
     }
@@ -23,12 +26,12 @@ class AnnonceLocation extends Annonce
         return $this->loyer;
     }
 
-    public function setLoyer(float $loyer): void
+    public function setLoyer(int|float $loyer): void
     {
         if ($loyer <= 0) {
             throw new InvalidArgumentException('Le loyer doit être strictement positif.');
         }
-        $this->loyer = $loyer;
+        $this->loyer = (float) $loyer;
     }
 
     public function getCharges(): float
@@ -36,12 +39,12 @@ class AnnonceLocation extends Annonce
         return $this->charges;
     }
 
-    public function setCharges(float $charges): void
+    public function setCharges(int|float $charges): void
     {
         if ($charges < 0) {
             throw new InvalidArgumentException('Les charges ne peuvent pas être négatives.');
         }
-        $this->charges = $charges;
+        $this->charges = (float) $charges;
     }
 
     public function getLoyerCharges(): float

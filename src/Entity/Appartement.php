@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/BienImmo.php';
 
 class Appartement extends BienImmo
 {
     protected int $etage;
 
-    public function __construct(string $ville, float $surface, int $chambres, int $etage = 0)
+    public function __construct(string $ville, int|float $surface, int $chambres, int $etage = 0, ?string $description = null)
     {
-        parent::__construct($ville, $surface, $chambres);
+        parent::__construct($ville, $surface, $chambres, $description);
         $this->setEtage($etage);
     }
 

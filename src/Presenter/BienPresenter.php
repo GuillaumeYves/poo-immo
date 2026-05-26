@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../Entity/Annonce.php';
 require_once __DIR__ . '/../Entity/AnnonceVente.php';
 require_once __DIR__ . '/../Entity/AnnonceLocation.php';
@@ -10,7 +12,7 @@ class BienPresenter
 {
     /**
      * @param Annonce[] $annonces
-     * @return array{entete: string, annonces: array<int, array{titre: string, meta: string[], attributs: array<int, array{0: string, 1: string}>, transaction: string}>}
+     * @return array{entete: string, annonces: array<int, array{titre: string, meta: string[], attributs: array<int, array{0: string, 1: string}>, transaction: string, etat: string}>}
      */
     public function presenterCatalogue(array $annonces, string $titre = 'Catalogue'): array
     {
@@ -24,7 +26,7 @@ class BienPresenter
     }
 
     /**
-     * @return array{titre: string, meta: string[], attributs: array<int, array{0: string, 1: string}>, transaction: string}
+     * @return array{titre: string, meta: string[], attributs: array<int, array{0: string, 1: string}>, transaction: string, etat: string}
      */
     public function presenterAnnonce(Annonce $annonce): array
     {
@@ -35,9 +37,11 @@ class BienPresenter
             'meta'        => [
                 $annonce->getTypeTransaction(),
                 'Publié le ' . $annonce->getDatePublication()->format('d/m/Y'),
+                'État : ' . $annonce->getEtat()->getLibelle(),
             ],
             'attributs'   => $this->buildAttributs($annonce),
             'transaction' => $annonce->getTypeTransaction(),
+            'etat'        => $annonce->getEtat()->value,
         ];
     }
 
@@ -71,8 +75,8 @@ class BienPresenter
         return $rows;
     }
 
-    private function formatEuros(float $montant): string
+    private function formatEuros(int|float $montant): string
     {
-        return number_format($montant, 0, ',', ' ') . ' €';
+        return number_format((float) $montant, 0, ',', ' ') . ' €';
     }
 }

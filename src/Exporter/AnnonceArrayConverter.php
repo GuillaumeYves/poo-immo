@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../Entity/Annonce.php';
 require_once __DIR__ . '/../Entity/AnnonceVente.php';
 require_once __DIR__ . '/../Entity/AnnonceLocation.php';
@@ -16,6 +18,7 @@ final class AnnonceArrayConverter
         'etage',
         'terrain_m2',
         'transaction',
+        'etat',
         'date_publication',
         'prix',
         'loyer',
@@ -37,6 +40,7 @@ final class AnnonceArrayConverter
             'etage'            => null,
             'terrain_m2'       => null,
             'transaction'      => $annonce->getTypeTransaction(),
+            'etat'             => $annonce->getEtat()->value,
             'date_publication' => $annonce->getDatePublication()->format('Y-m-d'),
             'prix'             => null,
             'loyer'            => null,
