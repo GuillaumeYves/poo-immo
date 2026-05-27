@@ -14,8 +14,9 @@ Puis ouvrir [http://localhost:8000](http://localhost:8000).
 
 ## Structure du projet
 
+```
 poo-immo/
-├── index.php                           # Point d'entrée : bootstrap, rendu HTML, routage export
+├── index.php                    # Point d'entrée : bootstrap, rendu HTML, routage export
 ├── assets/
 │   └── js/
 │       └── recherche.js               # Filtre live côté client (sous-chaîne)
