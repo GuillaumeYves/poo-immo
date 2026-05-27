@@ -14,24 +14,25 @@ Puis ouvrir [http://localhost:8000](http://localhost:8000).
 
 ## Structure du projet
 
+```
 poo-immo/
-├── index.php                           # Point d'entrée : bootstrap, rendu HTML, routage export
+├── index.php                    # Point d'entrée : bootstrap, rendu HTML, routage export
 ├── assets/
 │   └── js/
-│       └── recherche.js               # Filtre live côté client (sous-chaîne)
-├── data/                                    # Fixtures hors du code source
-│   ├── biens.seed.json              # Seed de biens (indexés par id)
+│       └── recherche.js         # Filtre live côté client (sous-chaîne)
+├── data/                        # Fixtures hors du code source
+│   ├── biens.seed.json          # Seed de biens (indexés par id)
 │   └── annonces.seed.json       # Seed d'annonces (référencent les biens par bienId)
 └── src/
-    ├── autoload.php                    # Autoloader (mappe App\ vers src/)
+    ├── autoload.php             # Autoloader (mappe App\ vers src/)
     ├── Entity/
-    │   ├── BienImmo.php             # Classe abstraite
-    │   ├── Appartement.php         # BienImmo + étage
-    │   ├── Maison.php                  # BienImmo + terrain
-    │   ├── Annonce.php                # Classe abstraite
-    │   ├── AnnonceVente.php       # Annonce + prix
-    │   ├── AnnonceLocation.php   # Annonce + loyer/charges
-    │   └── EtatAnnonce.php          # Enum
+    │   ├── BienImmo.php         # Classe abstraite
+    │   ├── Appartement.php      # BienImmo + étage
+    │   ├── Maison.php           # BienImmo + terrain
+    │   ├── Annonce.php          # Classe abstraite
+    │   ├── AnnonceVente.php     # Annonce + prix
+    │   ├── AnnonceLocation.php  # Annonce + loyer/charges
+    │   └── EtatAnnonce.php      # Enum
     ├── Repository/
     │   └── AnnonceRepository.php
     ├── Presenter/
@@ -42,9 +43,10 @@ poo-immo/
     │   ├── JsonExporter.php
     │   └── CsvExporter.php
     └── Database/
-        ├── BienSeedLoader.php         # Seed data/biens.seed.json en array <string, BienImmo>
-        ├── AnnonceSeedLoader.php  # Seed data/annonces.seed.json et résout les bienId
-        └── DatabaseCreate.php         # Orchestrateur : retourne un AnnonceRepository prêt à l'emploi
+        ├── BienSeedLoader.php        # Seed data/biens.seed.json en array <string, BienImmo>
+        ├── AnnonceSeedLoader.php     # Seed data/annonces.seed.json et résout les bienId
+        └── DatabaseCreate.php        # Orchestrateur : retourne un AnnonceRepository prêt à l'emploi
+```
 
 ## Namespaces et autoload
 
