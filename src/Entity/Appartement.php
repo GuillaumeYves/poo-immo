@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use InvalidArgumentException;
+use RuntimeException;
 
 class Appartement extends BienImmo
 {
@@ -20,6 +21,20 @@ class Appartement extends BienImmo
         $this->etage = $etage;
     }
 
+    /**
+     * @param array<string, mixed> $row
+     */
+    public static function fromArray(array $row): static
+    {
+        return new self(
+            (string) ($row['ville']    ?? throw new RuntimeException('Bien sans ville.')),
+            $row['surface']            ?? throw new RuntimeException('Bien sans surface.'),
+            (int) ($row['chambres']    ?? throw new RuntimeException('Bien sans chambres.')),
+            (int) ($row['etage'] ?? 0),
+            isset($row['description']) ? (string) $row['description'] : null,
+        );
+    }
+
     public function getEtage(): int
     {
         return $this->etage;
@@ -28,5 +43,17 @@ class Appartement extends BienImmo
     public function getType(): string
     {
         return 'Appartement';
+    }
+
+    public function getAttributsAffichage(): array
+    {
+        return [
+            ['Étage', (string) $this->etage],
+        ];
+    }
+
+    public function toExportRow(): array
+    {
+        return ['etage' => $this->etage];
     }
 }

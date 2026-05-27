@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/autoload.php';
 
-use App\Database\DatabaseCreate;
+use App\Database\JsonDataRepository;
 use App\Exporter\CsvExporter;
 use App\Exporter\ExporterInterface;
 use App\Exporter\JsonExporter;
-use App\Presenter\BienPresenter;
+use App\Formatter\MoneyFormatter;
+use App\Presenter\AnnoncePresenter;
+use App\Presenter\CataloguePresenter;
 
-$repository = DatabaseCreate::create();
-$presenter  = new BienPresenter();
+$repository = new JsonDataRepository(__DIR__ . '/data');
+$presenter  = new CataloguePresenter(new AnnoncePresenter(new MoneyFormatter()));
 
 /** @var ExporterInterface[] $exporters */
 $exporters = [];
@@ -30,7 +32,7 @@ if (is_string($exportFormat) && isset($exporters[$exportFormat])) {
     exit;
 }
 
-$catalogue = $presenter->presenterCatalogue($repository->findAll());
+$catalogue = $presenter->presenter($repository->findAll());
 
 ?>
 <!DOCTYPE html>
