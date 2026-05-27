@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Formatter\MoneyFormatter;
 use DateTimeImmutable;
 
 abstract class Annonce
@@ -45,4 +46,24 @@ abstract class Annonce
     abstract public function getTypeTransaction(): string;
 
     abstract public function getMontant(): float;
+
+    /**
+     * @return array<int, array{0: string, 1: string}>
+     */
+    abstract public function getAttributsAffichage(MoneyFormatter $formatter): array;
+
+    /**
+     * @return array<string, int|float|string|null>
+     */
+    abstract public function toExportRow(): array;
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    abstract public static function fromArray(
+        array $row,
+        BienImmo $bien,
+        EtatAnnonce $etat,
+        ?DateTimeImmutable $datePublication,
+    ): static;
 }

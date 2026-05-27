@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Formatter\MoneyFormatter;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use RuntimeException;
 
 class AnnonceLocation extends Annonce
 {
@@ -32,6 +34,20 @@ class AnnonceLocation extends Annonce
         $this->charges = (float) $charges;
     }
 
+    /**
+     * @param array<string, mixed> $row
+     */
+    public static function fromArray(array $row, BienImmo $bien, EtatAnnonce $etat, ?DateTimeImmutable $datePublication): static
+    {
+        return new self(
+            $bien,
+            $row['loyer'] ?? throw new RuntimeException('AnnonceLocation sans loyer.'),
+            $row['charges'] ?? 0,
+            $datePublication,
+            $etat,
+        );
+    }
+
     public function getLoyer(): float
     {
         return $this->loyer;
@@ -55,5 +71,22 @@ class AnnonceLocation extends Annonce
     public function getMontant(): float
     {
         return $this->loyer;
+    }
+
+    public function getAttributsAffichage(MoneyFormatter $formatter): array
+    {
+        return [
+            ['Loyer',   $formatter->format($this->loyer)            . '/mois'],
+            ['Charges', $formatter->format($this->charges)          . '/mois'],
+            ['Total',   $formatter->format($this->getLoyerCharges()) . '/mois'],
+        ];
+    }
+
+    public function toExportRow(): array
+    {
+        return [
+            'loyer'   => $this->loyer,
+            'charges' => $this->charges,
+        ];
     }
 }

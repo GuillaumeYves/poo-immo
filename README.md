@@ -19,36 +19,36 @@ poo-immo/
 ├── assets/
 │   └── js/
 │       └── recherche.js               # Filtre live côté client (sous-chaîne)
-├── data/                                    # Fixtures hors du code source
-│   ├── biens.seed.json              # Seed de biens (indexés par id)
-│   └── annonces.seed.json       # Seed d'annonces (référencent les biens par bienId)
+├── data/                               # Fixtures hors du code source
+│   ├── biens.seed.json                # Seed de biens (indexés par id)
+│   └── annonces.seed.json             # Seed d'annonces (référencent les biens par bienId)
 └── src/
     ├── autoload.php                    # Autoloader (mappe App\ vers src/)
-    ├── Entity/
-    │   ├── BienImmo.php             # Classe abstraite
-    │   ├── Appartement.php         # BienImmo + étage
-    │   ├── Maison.php                  # BienImmo + terrain
-    │   ├── Annonce.php                # Classe abstraite
-    │   ├── AnnonceVente.php       # Annonce + prix
-    │   ├── AnnonceLocation.php   # Annonce + loyer/charges
-    │   └── EtatAnnonce.php          # Enum
-    ├── Repository/
-    │   └── AnnonceRepository.php
+    ├── Entity/                         # Coeur métier (survit à un changement de persistance)
+    │   ├── BienImmo.php                 # Abstract : ville, surface, chambres + méthodes d'affichage/export
+    │   ├── Appartement.php             # BienImmo + étage + ::fromArray()
+    │   ├── Maison.php                  # BienImmo + terrain + ::fromArray()
+    │   ├── Annonce.php                 # Abstract : bien, date, état + méthodes d'affichage/export
+    │   ├── AnnonceVente.php            # Annonce + prix + ::fromArray()
+    │   ├── AnnonceLocation.php         # Annonce + loyer/charges + ::fromArray()
+    │   ├── EtatAnnonce.php             # Enum
+    │   └── AnnonceRepositoryInterface.php  # Port du domaine (le seul qui compte pour futur ajout MySQL)
+    ├── Database/
+    │   └── JsonDataRepository.php      # Implémentation actuelle : lit le dossier /data
     ├── Presenter/
-    │   └── BienPresenter.php
-    ├── Exporter/
-    │   ├── ExporterInterface.php
-    │   ├── AnnonceArrayConverter.php
-    │   ├── JsonExporter.php
-    │   └── CsvExporter.php
-    └── Database/
-        ├── BienSeedLoader.php         # Seed data/biens.seed.json en array <string, BienImmo>
-        ├── AnnonceSeedLoader.php  # Seed data/annonces.seed.json et résout les bienId
-        └── DatabaseCreate.php         # Orchestrateur : retourne un AnnonceRepository prêt à l'emploi
+    │   ├── AnnoncePresenter.php        # Présente une annonce (mise en forme pour template)
+    │   └── CataloguePresenter.php      # Présente l'ensemble (entête + itération)
+    ├── Formatter/
+    │   └── MoneyFormatter.php
+    └── Exporter/
+        ├── ExporterInterface.php
+        ├── AnnonceArrayConverter.php
+        ├── JsonExporter.php
+        └── CsvExporter.php
 
 ## Namespaces et autoload
 
-Toutes les classes vivent sous le namespace racine `App\`, organisé en sous-namespaces calqués sur l'arborescence (`App\Entity`, `App\Repository`, `App\Presenter`, `App\Exporter`, `App\Database`).
+Toutes les classes vivent sous le namespace racine `App\`, organisé en sous-namespaces calqués sur l'arborescence (`App\Entity`, `App\Database`, `App\Presenter`, `App\Formatter`, `App\Exporter`).
 
 L'autoloader maison dans `src/autoload.php` enregistre une callback `spl_autoload_register` qui mappe le préfixe `App\` vers le dossier `src/` :
 
@@ -130,19 +130,38 @@ Tableau d'annonces référençant un bien par son `bienId` :
 | `loyer`           | requis si `transaction = location`                       |
 | `charges`         | (optionnel) défaut = 0                                    |
 
-### Orchestration : `DatabaseCreate`
+### Orchestration : `JsonDataRepository`
 
-`App\Database\DatabaseCreate::create(): AnnonceRepository` est le point d'entrée unique :
-
-1. `BienSeedLoader::load()` lit `data/biens.seed.json` et retourne un `array<string, BienImmo>` indexé par id.
-2. `AnnonceSeedLoader::load($path, $biens)` lit `data/annonces.seed.json` et résout chaque `bienId` contre la map précédente. Un `bienId` orphelin lève une `RuntimeException`.
-3. Les annonces hydratées sont ajoutées à un `AnnonceRepository` retourné prêt à l'emploi.
-
-Côté `index.php`, le bootstrap se résume à :
+Un seul service infra (`App\Database\JsonDataRepository`) implémente `AnnonceRepositoryInterface` et fait tout le travail :
 
 ```php
-$repository = DatabaseCreate::create();
+$repository = new JsonDataRepository(__DIR__ . '/data');
 ```
+
+Sous le capot :
+
+1. Lit `biens.seed.json`. Pour chaque ligne, regarde `type` dans une registry `[string => class-string]` interne et appelle `Classe::fromArray($row)` (constructeur nommé sur l'entité). Retourne `array<string, BienImmo>` indexé par id.
+2. Lit `annonces.seed.json`. Résout `bienId` contre la map précédente (orphelin = `RuntimeException`), résout `etat` (enum) et `datePublication`, puis appelle `Classe::fromArray($row, $bien, $etat, $date)` selon la transaction.
+3. Les annonces hydratées sont stockées dans une collection interne — l'instance est elle-même le repository (typée `AnnonceRepositoryInterface`).
+
+Ajouter un nouveau type (ex: `Terrain`) :
+
+1. Créer `src/Entity/Terrain.php` avec sa méthode statique `::fromArray()`.
+2. Ajouter une ligne dans la registry `JsonDataRepository::BIEN_TYPES` : `'terrain' => Terrain::class`.
+
+Aucun autre fichier modifié. Voir [`SOLID-refactor.md`](SOLID-refactor.md) pour le cheminement complet.
+
+### Brancher MySQL plus tard
+
+`AnnonceRepositoryInterface` vit dans `Entity/` côté domaine, c'est le seul contrat que le reste du code (presenters, exporters) connaît. Le jour où l'on passe à MySQL :
+
+```php
+// 1. Créer src/Database/MysqlAnnonceRepository.php qui implémente AnnonceRepositoryInterface
+// 2. Une seule ligne change dans index.php :
+$repository = new MysqlAnnonceRepository($pdo);
+```
+
+Le domaine, les presenters et les exporters ne bougent pas. `JsonDataRepository` peut être conservé pour les tests/dev.
 
 ## Recherche
 

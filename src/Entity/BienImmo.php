@@ -52,4 +52,19 @@ abstract class BienImmo
     }
 
     abstract public function getType(): string;
+
+    /**
+     * @return array<int, array{0: string, 1: string}>
+     */
+    abstract public function getAttributsAffichage(): array;
+
+    /**
+     * @return array<string, int|float|string|null>
+     */
+    abstract public function toExportRow(): array;
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    abstract public static function fromArray(array $row): static;
 }
