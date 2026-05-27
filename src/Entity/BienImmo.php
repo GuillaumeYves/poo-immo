@@ -2,19 +2,33 @@
 
 declare(strict_types=1);
 
+namespace App\Entity;
+
+use InvalidArgumentException;
+
 abstract class BienImmo
 {
-    protected string $ville;
-    protected float $surface;
-    protected int $chambres;
-    protected ?string $description = null;
+    protected readonly string $ville;
+    protected readonly float $surface;
+    protected readonly int $chambres;
+    protected readonly ?string $description;
 
     public function __construct(string $ville, int|float $surface, int $chambres, ?string $description = null)
     {
-        $this->setVille($ville);
-        $this->setSurface($surface);
-        $this->setChambres($chambres);
-        $this->setDescription($description);
+        if (trim($ville) === '') {
+            throw new InvalidArgumentException('La ville ne peut pas être vide.');
+        }
+        if ($surface <= 0) {
+            throw new InvalidArgumentException('La surface ne peut pas être négative ou égale à zéro.');
+        }
+        if ($chambres < 0) {
+            throw new InvalidArgumentException('Le nombre de chambres ne peut pas être négatif.');
+        }
+
+        $this->ville       = $ville;
+        $this->surface     = (float) $surface;
+        $this->chambres    = $chambres;
+        $this->description = $description !== null && trim($description) === '' ? null : $description;
     }
 
     public function getVille(): string
@@ -22,35 +36,9 @@ abstract class BienImmo
         return $this->ville;
     }
 
-    public function setVille(string $ville): void
-    {
-        if (trim($ville) === '') {
-            throw new InvalidArgumentException('La ville ne peut pas être vide.');
-        }
-        $this->ville = $ville;
-    }
-
     public function getSurface(): float
     {
         return $this->surface;
-    }
-
-    public function setSurface(int|float $surface): void
-    {
-        if ($surface <= 0) {
-            throw new InvalidArgumentException('La surface ne peut pas être négative ou égale à zéro.');
-        }
-        $this->surface = (float) $surface;
-    }
-
-    public function getDescription(): ?string
-    {
-        return $this->description;
-    }
-
-    public function setDescription(?string $description): void
-    {
-        $this->description = $description !== null && trim($description) === '' ? null : $description;
     }
 
     public function getChambres(): int
@@ -58,12 +46,9 @@ abstract class BienImmo
         return $this->chambres;
     }
 
-    public function setChambres(int $chambres): void
+    public function getDescription(): ?string
     {
-        if ($chambres < 0) {
-            throw new InvalidArgumentException('Le nombre de chambres ne peut pas être négatif.');
-        }
-        $this->chambres = $chambres;
+        return $this->description;
     }
 
     abstract public function getType(): string;

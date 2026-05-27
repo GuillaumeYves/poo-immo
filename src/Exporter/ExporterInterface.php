@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Entity/Annonce.php';
+namespace App\Exporter;
+
+use App\Entity\Annonce;
 
 interface ExporterInterface
 {

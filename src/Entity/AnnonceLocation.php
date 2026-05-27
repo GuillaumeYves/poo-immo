@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/Annonce.php';
+namespace App\Entity;
+
+use DateTimeImmutable;
+use InvalidArgumentException;
 
 class AnnonceLocation extends Annonce
 {
-    protected float $loyer;
-    protected float $charges;
+    protected readonly float $loyer;
+    protected readonly float $charges;
 
     public function __construct(
         BienImmo $bien,
@@ -17,8 +20,16 @@ class AnnonceLocation extends Annonce
         EtatAnnonce $etat = EtatAnnonce::Disponible,
     ) {
         parent::__construct($bien, $datePublication, $etat);
-        $this->setLoyer($loyer);
-        $this->setCharges($charges);
+
+        if ($loyer <= 0) {
+            throw new InvalidArgumentException('Le loyer doit être strictement positif.');
+        }
+        if ($charges < 0) {
+            throw new InvalidArgumentException('Les charges ne peuvent pas être négatives.');
+        }
+
+        $this->loyer   = (float) $loyer;
+        $this->charges = (float) $charges;
     }
 
     public function getLoyer(): float
@@ -26,25 +37,9 @@ class AnnonceLocation extends Annonce
         return $this->loyer;
     }
 
-    public function setLoyer(int|float $loyer): void
-    {
-        if ($loyer <= 0) {
-            throw new InvalidArgumentException('Le loyer doit être strictement positif.');
-        }
-        $this->loyer = (float) $loyer;
-    }
-
     public function getCharges(): float
     {
         return $this->charges;
-    }
-
-    public function setCharges(int|float $charges): void
-    {
-        if ($charges < 0) {
-            throw new InvalidArgumentException('Les charges ne peuvent pas être négatives.');
-        }
-        $this->charges = (float) $charges;
     }
 
     public function getLoyerCharges(): float

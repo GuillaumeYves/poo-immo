@@ -1,0 +1,122 @@
+[
+  {
+    "id": "lyon-01",
+    "type": "appartement",
+    "ville": "Lyon",
+    "surface": 45,
+    "chambres": 2,
+    "etage": 3
+  },
+  {
+    "id": "paris-01",
+    "type": "appartement",
+    "ville": "Paris",
+    "surface": 30,
+    "chambres": 1,
+    "etage": 5
+  },
+  {
+    "id": "marseille-01",
+    "type": "appartement",
+    "ville": "Marseille",
+    "surface": 60,
+    "chambres": 3,
+    "etage": 1
+  },
+  {
+    "id": "toulouse-01",
+    "type": "maison",
+    "ville": "Toulouse",
+    "surface": 120,
+    "chambres": 4,
+    "terrain": 500
+  },
+  {
+    "id": "bordeaux-01",
+    "type": "maison",
+    "ville": "Bordeaux",
+    "surface": 95,
+    "chambres": 3,
+    "terrain": 200
+  },
+  {
+    "id": "nantes-01",
+    "type": "appartement",
+    "ville": "Nantes",
+    "surface": 55,
+    "chambres": 2,
+    "etage": 4
+  },
+  {
+    "id": "strasbourg-01",
+    "type": "maison",
+    "ville": "Strasbourg",
+    "surface": 110,
+    "chambres": 4,
+    "terrain": 350
+  },
+  {
+    "id": "montpellier-01",
+    "type": "appartement",
+    "ville": "Montpellier",
+    "surface": 38,
+    "chambres": 1,
+    "etage": 2
+  },
+  {
+    "id": "lille-01",
+    "type": "appartement",
+    "ville": "Lille",
+    "surface": 70,
+    "chambres": 3,
+    "etage": 6
+  },
+  {
+    "id": "rennes-01",
+    "type": "maison",
+    "ville": "Rennes",
+    "surface": 130,
+    "chambres": 5,
+    "terrain": 600
+  },
+  {
+    "id": "nice-01",
+    "type": "appartement",
+    "ville": "Nice",
+    "surface": 42,
+    "chambres": 2,
+    "etage": 8
+  },
+  {
+    "id": "grenoble-01",
+    "type": "appartement",
+    "ville": "Grenoble",
+    "surface": 65,
+    "chambres": 3,
+    "etage": 1
+  },
+  {
+    "id": "dijon-01",
+    "type": "maison",
+    "ville": "Dijon",
+    "surface": 105,
+    "chambres": 4,
+    "terrain": 420
+  },
+  {
+    "id": "angers-01",
+    "type": "appartement",
+    "ville": "Angers",
+    "surface": 50,
+    "chambres": 2,
+    "etage": 3
+  },
+  {
+    "id": "reims-01",
+    "type": "maison",
+    "ville": "Reims",
+    "surface": 90,
+    "chambres": 3,
+    "terrain": 250
+  }
+]

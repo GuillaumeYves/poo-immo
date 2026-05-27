@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace App\Entity;
+
 enum EtatAnnonce: string
 {
     case Disponible = 'disponible';

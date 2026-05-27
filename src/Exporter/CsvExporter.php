@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/ExporterInterface.php';
-require_once __DIR__ . '/AnnonceArrayConverter.php';
+namespace App\Exporter;
+
+use RuntimeException;
 
 class CsvExporter implements ExporterInterface
 {
     public function __construct(
-        private string $separator = ';',
-        private bool $withBom = true,
+        private readonly string $separator = ';',
+        private readonly bool $withBom = true,
     ) {
     }
 
@@ -20,14 +21,14 @@ class CsvExporter implements ExporterInterface
             throw new RuntimeException("Impossible d'ouvrir le flux temporaire CSV.");
         }
 
-        fputcsv($handle, AnnonceArrayConverter::COLUMNS, $this->separator);
+        fputcsv($handle, AnnonceArrayConverter::COLUMNS, $this->separator, escape: '');
 
         foreach ($annonces as $annonce) {
             $row = AnnonceArrayConverter::toArray($annonce);
             fputcsv($handle, array_map(
                 fn(string|int|float|null $v): string => $v === null ? '' : (string) $v,
                 $row
-            ), $this->separator);
+            ), $this->separator, escape: '');
         }
 
         rewind($handle);

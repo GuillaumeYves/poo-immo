@@ -2,25 +2,16 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/src/Entity/Appartement.php';
-require_once __DIR__ . '/src/Entity/Maison.php';
-require_once __DIR__ . '/src/Entity/EtatAnnonce.php';
-require_once __DIR__ . '/src/Entity/AnnonceVente.php';
-require_once __DIR__ . '/src/Entity/AnnonceLocation.php';
-require_once __DIR__ . '/src/Repository/AnnonceRepository.php';
-require_once __DIR__ . '/src/Presenter/BienPresenter.php';
-require_once __DIR__ . '/src/Exporter/ExporterInterface.php';
-require_once __DIR__ . '/src/Exporter/JsonExporter.php';
-require_once __DIR__ . '/src/Exporter/CsvExporter.php';
+require_once __DIR__ . '/src/autoload.php';
 
-$repository = new AnnonceRepository();
+use App\Database\DatabaseCreate;
+use App\Exporter\CsvExporter;
+use App\Exporter\ExporterInterface;
+use App\Exporter\JsonExporter;
+use App\Presenter\BienPresenter;
+
+$repository = DatabaseCreate::create();
 $presenter  = new BienPresenter();
-
-$repository->add(new AnnonceVente(new Appartement('Lyon', 45, 2, 3), 180000));
-$repository->add(new AnnonceVente(new Appartement('Paris', 30, 1, 5), 320000, null, EtatAnnonce::EnNegociation));
-$repository->add(new AnnonceLocation(new Appartement('Marseille', 60, 3, 1), 850, 120));
-$repository->add(new AnnonceVente(new Maison('Toulouse', 120, 4, 500), 380000, null, EtatAnnonce::Indisponible));
-$repository->add(new AnnonceLocation(new Maison('Bordeaux', 95, 3, 200), 1200, 150, null, EtatAnnonce::EnNegociation));
 
 /** @var ExporterInterface[] $exporters */
 $exporters = [];
@@ -35,7 +26,6 @@ if (is_string($exportFormat) && isset($exporters[$exportFormat])) {
 
     header('Content-Type: ' . $exporter->getContentType());
     header('Content-Disposition: attachment; filename="' . $exporter->getFilename() . '"');
-    header('Content-Length: ' . strlen($payload));
     echo $payload;
     exit;
 }
@@ -47,6 +37,7 @@ $catalogue = $presenter->presenterCatalogue($repository->findAll());
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <script src="assets/js/recherche.js" defer></script>
 </head>
 <body>
 
@@ -62,23 +53,37 @@ $catalogue = $presenter->presenterCatalogue($repository->findAll());
         <?php endforeach; ?>
     </nav>
 
-    <?php foreach ($catalogue['annonces'] as $i => $annonce): ?>
-        <?php if ($i > 0): ?><hr><?php endif; ?>
-        <article class="annonce annonce--<?= strtolower($annonce['transaction']) ?> annonce--etat-<?= htmlspecialchars($annonce['etat'], ENT_QUOTES, 'UTF-8') ?>">
-            <h3><?= htmlspecialchars($annonce['titre'], ENT_QUOTES, 'UTF-8') ?></h3>
-            <p class="annonce__meta">
-                <?php foreach ($annonce['meta'] as $j => $ligne): ?>
-                    <?php if ($j > 0): ?><br><?php endif; ?>
-                    <?= htmlspecialchars($ligne, ENT_QUOTES, 'UTF-8') ?>
-                <?php endforeach; ?>
-            </p>
-            <ul>
-                <?php foreach ($annonce['attributs'] as [$label, $valeur]): ?>
-                    <li><strong><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?> :</strong> <?= htmlspecialchars($valeur, ENT_QUOTES, 'UTF-8') ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </article>
-    <?php endforeach; ?>
+    <form class="recherche" role="search" onsubmit="return false">
+        <label for="recherche-input">Rechercher :</label>
+        <input type="search"
+               id="recherche-input"
+               name="q"
+               autocomplete="off"
+               spellcheck="false"
+               placeholder="Exemple : Lyon">
+        <span class="recherche__compteur" id="recherche-compteur"></span>
+    </form>
+
+    <div class="catalogue__liste" id="catalogue-liste">
+        <?php foreach ($catalogue['annonces'] as $i => $annonce): ?>
+            <?php if ($i > 0): ?><hr><?php endif; ?>
+            <article class="annonce annonce--<?= strtolower($annonce['transaction']) ?> annonce--etat-<?= htmlspecialchars($annonce['etat'], ENT_QUOTES, 'UTF-8') ?>"
+                     data-titre="<?= htmlspecialchars($annonce['titre'], ENT_QUOTES, 'UTF-8') ?>">
+                <h3><?= htmlspecialchars($annonce['titre'], ENT_QUOTES, 'UTF-8') ?></h3>
+                <p class="annonce__meta">
+                    <?php foreach ($annonce['meta'] as $j => $ligne): ?>
+                        <?php if ($j > 0): ?><br><?php endif; ?>
+                        <?= htmlspecialchars($ligne, ENT_QUOTES, 'UTF-8') ?>
+                    <?php endforeach; ?>
+                </p>
+                <ul>
+                    <?php foreach ($annonce['attributs'] as [$label, $valeur]): ?>
+                        <li><strong><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?> :</strong> <?= htmlspecialchars($valeur, ENT_QUOTES, 'UTF-8') ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </article>
+        <?php endforeach; ?>
+    </div>
 </section>
 
 </body>

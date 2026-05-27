@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Entity/Annonce.php';
-require_once __DIR__ . '/../Entity/AnnonceVente.php';
-require_once __DIR__ . '/../Entity/AnnonceLocation.php';
-require_once __DIR__ . '/../Entity/Appartement.php';
-require_once __DIR__ . '/../Entity/Maison.php';
+namespace App\Exporter;
+
+use App\Entity\Annonce;
+use App\Entity\AnnonceLocation;
+use App\Entity\AnnonceVente;
+use App\Entity\Appartement;
+use App\Entity\Maison;
 
 final class AnnonceArrayConverter
 {

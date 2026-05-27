@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Entity/Annonce.php';
+namespace App\Repository;
+
+use App\Entity\Annonce;
 
 class AnnonceRepository
 {

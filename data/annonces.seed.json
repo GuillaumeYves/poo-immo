@@ -1,0 +1,98 @@
+[
+  {
+    "bienId": "lyon-01",
+    "transaction": "vente",
+    "etat": "disponible",
+    "prix": 180000
+  },
+  {
+    "bienId": "paris-01",
+    "transaction": "vente",
+    "etat": "en_negociation",
+    "prix": 320000
+  },
+  {
+    "bienId": "marseille-01",
+    "transaction": "location",
+    "etat": "disponible",
+    "loyer": 850,
+    "charges": 120
+  },
+  {
+    "bienId": "toulouse-01",
+    "transaction": "vente",
+    "etat": "indisponible",
+    "prix": 380000
+  },
+  {
+    "bienId": "bordeaux-01",
+    "transaction": "location",
+    "etat": "en_negociation",
+    "loyer": 1200,
+    "charges": 150
+  },
+  {
+    "bienId": "nantes-01",
+    "transaction": "vente",
+    "etat": "disponible",
+    "prix": 245000
+  },
+  {
+    "bienId": "strasbourg-01",
+    "transaction": "vente",
+    "etat": "disponible",
+    "prix": 295000
+  },
+  {
+    "bienId": "montpellier-01",
+    "transaction": "location",
+    "etat": "disponible",
+    "loyer": 620,
+    "charges": 80
+  },
+  {
+    "bienId": "lille-01",
+    "transaction": "vente",
+    "etat": "en_negociation",
+    "prix": 215000
+  },
+  {
+    "bienId": "rennes-01",
+    "transaction": "vente",
+    "etat": "disponible",
+    "prix": 410000
+  },
+  {
+    "bienId": "nice-01",
+    "transaction": "location",
+    "etat": "disponible",
+    "loyer": 950,
+    "charges": 130
+  },
+  {
+    "bienId": "grenoble-01",
+    "transaction": "location",
+    "etat": "disponible",
+    "loyer": 780,
+    "charges": 95
+  },
+  {
+    "bienId": "dijon-01",
+    "transaction": "vente",
+    "etat": "disponible",
+    "prix": 265000
+  },
+  {
+    "bienId": "angers-01",
+    "transaction": "location",
+    "etat": "en_negociation",
+    "loyer": 690,
+    "charges": 110
+  },
+  {
+    "bienId": "reims-01",
+    "transaction": "vente",
+    "etat": "indisponible",
+    "prix": 198000
+  }
+]

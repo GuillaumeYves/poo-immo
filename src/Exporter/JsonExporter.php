@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/ExporterInterface.php';
-require_once __DIR__ . '/AnnonceArrayConverter.php';
+namespace App\Exporter;
+
+use App\Entity\Annonce;
 
 class JsonExporter implements ExporterInterface
 {

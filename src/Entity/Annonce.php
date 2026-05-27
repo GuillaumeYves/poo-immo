@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/BienImmo.php';
-require_once __DIR__ . '/EtatAnnonce.php';
+namespace App\Entity;
+
+use DateTimeImmutable;
 
 abstract class Annonce
 {
-    protected BienImmo $bien;
-    protected DateTimeImmutable $datePublication;
+    protected readonly BienImmo $bien;
+    protected readonly DateTimeImmutable $datePublication;
     protected EtatAnnonce $etat;
 
     public function __construct(
@@ -16,9 +17,9 @@ abstract class Annonce
         ?DateTimeImmutable $datePublication = null,
         EtatAnnonce $etat = EtatAnnonce::Disponible,
     ) {
-        $this->bien = $bien;
+        $this->bien            = $bien;
         $this->datePublication = $datePublication ?? new DateTimeImmutable();
-        $this->etat = $etat;
+        $this->etat            = $etat;
     }
 
     public function getBien(): BienImmo
