@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Entity;
+namespace App\Entity\Annonce;
 
+use App\Entity\Bien\BienImmo;
 use App\Formatter\MoneyFormatter;
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -11,27 +12,28 @@ use RuntimeException;
 
 class AnnonceLocation extends Annonce
 {
-    protected readonly float $loyer;
-    protected readonly float $charges;
+    // Montants en string : précision exacte via BCMath (cf README - section Persistance).
+    protected readonly string $loyer;
+    protected readonly string $charges;
 
     public function __construct(
         BienImmo $bien,
-        int|float $loyer,
-        int|float $charges = 0.0,
+        string $loyer,
+        string $charges = '0',
         ?DateTimeImmutable $datePublication = null,
         EtatAnnonce $etat = EtatAnnonce::Disponible,
     ) {
         parent::__construct($bien, $datePublication, $etat);
 
-        if ($loyer <= 0) {
+        if (bccomp($loyer, '0', 2) <= 0) {
             throw new InvalidArgumentException('Le loyer doit être strictement positif.');
         }
-        if ($charges < 0) {
+        if (bccomp($charges, '0', 2) < 0) {
             throw new InvalidArgumentException('Les charges ne peuvent pas être négatives.');
         }
 
-        $this->loyer   = (float) $loyer;
-        $this->charges = (float) $charges;
+        $this->loyer   = $loyer;
+        $this->charges = $charges;
     }
 
     /**
@@ -41,26 +43,26 @@ class AnnonceLocation extends Annonce
     {
         return new self(
             $bien,
-            $row['loyer'] ?? throw new RuntimeException('AnnonceLocation sans loyer.'),
-            $row['charges'] ?? 0,
+            (string) ($row['loyer'] ?? throw new RuntimeException('AnnonceLocation sans loyer.')),
+            (string) ($row['charges'] ?? '0'),
             $datePublication,
             $etat,
         );
     }
 
-    public function getLoyer(): float
+    public function getLoyer(): string
     {
         return $this->loyer;
     }
 
-    public function getCharges(): float
+    public function getCharges(): string
     {
         return $this->charges;
     }
 
-    public function getLoyerCharges(): float
+    public function getLoyerCharges(): string
     {
-        return $this->loyer + $this->charges;
+        return bcadd($this->loyer, $this->charges, 2);
     }
 
     public function getTypeTransaction(): string
@@ -68,7 +70,7 @@ class AnnonceLocation extends Annonce
         return 'Location';
     }
 
-    public function getMontant(): float
+    public function getMontant(): string
     {
         return $this->loyer;
     }
@@ -76,9 +78,9 @@ class AnnonceLocation extends Annonce
     public function getAttributsAffichage(MoneyFormatter $formatter): array
     {
         return [
-            ['Loyer',   $formatter->format($this->loyer)            . '/mois'],
-            ['Charges', $formatter->format($this->charges)          . '/mois'],
-            ['Total',   $formatter->format($this->getLoyerCharges()) . '/mois'],
+            ['Loyer',   $formatter->format($this->loyer)              . '/mois'],
+            ['Charges', $formatter->format($this->charges)            . '/mois'],
+            ['Total',   $formatter->format($this->getLoyerCharges())  . '/mois'],
         ];
     }
 

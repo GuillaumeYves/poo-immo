@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Entity;
+namespace App\Entity\Annonce;
 
+use App\Entity\Bien\BienImmo;
 use App\Formatter\MoneyFormatter;
 use DateTimeImmutable;
 
@@ -45,7 +46,7 @@ abstract class Annonce
 
     abstract public function getTypeTransaction(): string;
 
-    abstract public function getMontant(): float;
+    abstract public function getMontant(): string;
 
     /**
      * @return array<int, array{0: string, 1: string}>

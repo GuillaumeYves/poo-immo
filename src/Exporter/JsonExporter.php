@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exporter;
 
-use App\Entity\Annonce;
+use App\Entity\Annonce\Annonce;
 
 class JsonExporter implements ExporterInterface
 {

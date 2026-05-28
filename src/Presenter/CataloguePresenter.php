@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Presenter;
 
-use App\Entity\Annonce;
+use App\Entity\Annonce\Annonce;
 
 final class CataloguePresenter
 {
