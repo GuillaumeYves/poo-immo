@@ -6,10 +6,10 @@ namespace App\Entity\Annonce;
 
 interface AnnonceRepositoryInterface
 {
-    public function add(Annonce $annonce): void;
-
     /** @return Annonce[] */
     public function findAll(): array;
+
+    public function findById(int $id): ?Annonce;
 
     public function findOneByVille(string $ville): ?Annonce;
 
@@ -23,4 +23,6 @@ interface AnnonceRepositoryInterface
     public function findByTypeBien(string $type): array;
 
     public function count(): int;
+
+    public function updatePrixCourant(int $id, string $nouveauPrix): void;
 }

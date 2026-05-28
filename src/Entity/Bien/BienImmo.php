@@ -8,13 +8,17 @@ use InvalidArgumentException;
 
 abstract class BienImmo
 {
+    protected readonly string $id;
     protected readonly string $ville;
     protected readonly float $surface;
     protected readonly int $chambres;
     protected readonly ?string $description;
 
-    public function __construct(string $ville, int|float $surface, int $chambres, ?string $description = null)
+    public function __construct(string $id, string $ville, int|float $surface, int $chambres, ?string $description = null)
     {
+        if (trim($id) === '') {
+            throw new InvalidArgumentException("L'id du bien ne peut pas être vide.");
+        }
         if (trim($ville) === '') {
             throw new InvalidArgumentException('La ville ne peut pas être vide.');
         }
@@ -25,10 +29,16 @@ abstract class BienImmo
             throw new InvalidArgumentException('Le nombre de chambres ne peut pas être négatif.');
         }
 
+        $this->id          = $id;
         $this->ville       = $ville;
         $this->surface     = (float) $surface;
         $this->chambres    = $chambres;
         $this->description = $description !== null && trim($description) === '' ? null : $description;
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
     }
 
     public function getVille(): string
@@ -52,16 +62,6 @@ abstract class BienImmo
     }
 
     abstract public function getType(): string;
-
-    /**
-     * @return array<int, array{0: string, 1: string}>
-     */
-    abstract public function getAttributsAffichage(): array;
-
-    /**
-     * @return array<string, int|float|string|null>
-     */
-    abstract public function toExportRow(): array;
 
     /**
      * @param array<string, mixed> $row

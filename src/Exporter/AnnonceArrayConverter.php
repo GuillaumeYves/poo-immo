@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Exporter;
 
 use App\Entity\Annonce\Annonce;
+use App\Entity\Annonce\AnnonceLocation;
+use App\Entity\Annonce\AnnonceVente;
+use App\Entity\Bien\Appartement;
+use App\Entity\Bien\BienImmo;
+use App\Entity\Bien\Maison;
 
 final class AnnonceArrayConverter
 {
@@ -18,7 +23,8 @@ final class AnnonceArrayConverter
         'transaction',
         'etat',
         'date_publication',
-        'prix',
+        'prix_initial',
+        'prix_avec_reduction',
         'loyer',
         'charges',
     ];
@@ -43,8 +49,46 @@ final class AnnonceArrayConverter
         return array_merge(
             array_fill_keys(self::COLUMNS, null),
             $base,
-            $bien->toExportRow(),
-            $annonce->toExportRow(),
+            self::bienToArray($bien),
+            self::annonceToArray($annonce),
         );
+    }
+
+    /**
+     * @return array<string, int|float|string|null>
+     */
+    private static function bienToArray(BienImmo $bien): array
+    {
+        if ($bien instanceof Appartement) {
+            return ['etage' => $bien->getEtage()];
+        }
+
+        if ($bien instanceof Maison) {
+            return ['terrain_m2' => $bien->getTerrain()];
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array<string, int|float|string|null>
+     */
+    private static function annonceToArray(Annonce $annonce): array
+    {
+        if ($annonce instanceof AnnonceVente) {
+            return [
+                'prix_initial'        => $annonce->getPrixInitial(),
+                'prix_avec_reduction' => $annonce->getPrixCourant(),
+            ];
+        }
+
+        if ($annonce instanceof AnnonceLocation) {
+            return [
+                'loyer'   => $annonce->getLoyer(),
+                'charges' => $annonce->getCharges(),
+            ];
+        }
+
+        return [];
     }
 }

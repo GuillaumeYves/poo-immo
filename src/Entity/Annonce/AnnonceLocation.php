@@ -5,25 +5,24 @@ declare(strict_types=1);
 namespace App\Entity\Annonce;
 
 use App\Entity\Bien\BienImmo;
-use App\Formatter\MoneyFormatter;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use RuntimeException;
 
 class AnnonceLocation extends Annonce
 {
-    // Montants en string : précision exacte via BCMath (cf README - section Persistance).
     protected readonly string $loyer;
     protected readonly string $charges;
 
     public function __construct(
+        int $id,
         BienImmo $bien,
         string $loyer,
         string $charges = '0',
         ?DateTimeImmutable $datePublication = null,
         EtatAnnonce $etat = EtatAnnonce::Disponible,
     ) {
-        parent::__construct($bien, $datePublication, $etat);
+        parent::__construct($id, $bien, $datePublication, $etat);
 
         if (bccomp($loyer, '0', 2) <= 0) {
             throw new InvalidArgumentException('Le loyer doit être strictement positif.');
@@ -42,6 +41,7 @@ class AnnonceLocation extends Annonce
     public static function fromArray(array $row, BienImmo $bien, EtatAnnonce $etat, ?DateTimeImmutable $datePublication): static
     {
         return new self(
+            (int) ($row['annonce_id'] ?? throw new RuntimeException('Annonce sans id.')),
             $bien,
             (string) ($row['loyer'] ?? throw new RuntimeException('AnnonceLocation sans loyer.')),
             (string) ($row['charges'] ?? '0'),
@@ -67,28 +67,6 @@ class AnnonceLocation extends Annonce
 
     public function getTypeTransaction(): string
     {
-        return 'Location';
-    }
-
-    public function getMontant(): string
-    {
-        return $this->loyer;
-    }
-
-    public function getAttributsAffichage(MoneyFormatter $formatter): array
-    {
-        return [
-            ['Loyer',   $formatter->format($this->loyer)              . '/mois'],
-            ['Charges', $formatter->format($this->charges)            . '/mois'],
-            ['Total',   $formatter->format($this->getLoyerCharges())  . '/mois'],
-        ];
-    }
-
-    public function toExportRow(): array
-    {
-        return [
-            'loyer'   => $this->loyer,
-            'charges' => $this->charges,
-        ];
+        return 'location';
     }
 }

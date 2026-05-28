@@ -79,8 +79,16 @@ $catalogue = $presenter->presenter($repository->findAll());
                     <?php endforeach; ?>
                 </p>
                 <ul>
-                    <?php foreach ($annonce['attributs'] as [$label, $valeur]): ?>
-                        <li><strong><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?> :</strong> <?= htmlspecialchars($valeur, ENT_QUOTES, 'UTF-8') ?></li>
+                    <?php foreach ($annonce['attributs'] as $attr): ?>
+                        <?php $label = $attr[0]; $valeur = $attr[1]; $valeurHtml = $attr[2] ?? null; ?>
+                        <li>
+                            <strong><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?> :</strong>
+                            <?php if ($valeurHtml !== null): ?>
+                                <?= $valeurHtml ?>
+                            <?php else: ?>
+                                <?= htmlspecialchars($valeur, ENT_QUOTES, 'UTF-8') ?>
+                            <?php endif; ?>
+                        </li>
                     <?php endforeach; ?>
                 </ul>
             </article>
