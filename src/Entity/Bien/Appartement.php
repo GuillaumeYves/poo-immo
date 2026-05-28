@@ -11,9 +11,9 @@ class Appartement extends BienImmo
 {
     protected readonly int $etage;
 
-    public function __construct(string $ville, int|float $surface, int $chambres, int $etage = 0, ?string $description = null)
+    public function __construct(string $id, string $ville, int|float $surface, int $chambres, int $etage = 0, ?string $description = null)
     {
-        parent::__construct($ville, $surface, $chambres, $description);
+        parent::__construct($id, $ville, $surface, $chambres, $description);
 
         if ($etage < 0) {
             throw new InvalidArgumentException("L'étage ne peut pas être négatif.");
@@ -27,6 +27,7 @@ class Appartement extends BienImmo
     public static function fromArray(array $row): static
     {
         return new self(
+            (string) ($row['bien_id']  ?? throw new RuntimeException('Bien sans id.')),
             (string) ($row['ville']    ?? throw new RuntimeException('Bien sans ville.')),
             (float) ($row['surface']   ?? throw new RuntimeException('Bien sans surface.')),
             (int) ($row['chambres']    ?? throw new RuntimeException('Bien sans chambres.')),
@@ -42,18 +43,6 @@ class Appartement extends BienImmo
 
     public function getType(): string
     {
-        return 'Appartement';
-    }
-
-    public function getAttributsAffichage(): array
-    {
-        return [
-            ['Étage', (string) $this->etage],
-        ];
-    }
-
-    public function toExportRow(): array
-    {
-        return ['etage' => $this->etage];
+        return 'appartement';
     }
 }

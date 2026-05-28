@@ -15,7 +15,7 @@ final class CataloguePresenter
 
     /**
      * @param Annonce[] $annonces
-     * @return array{entete: string, annonces: array<int, array{titre: string, meta: string[], attributs: array<int, array{0: string, 1: string}>, transaction: string, etat: string}>}
+     * @return array{entete: string, annonces: array<int, array{titre: string, meta: string[], attributs: array<int, array{0: string, 1: string, 2?: string}>, transaction: string, etat: string}>}
      */
     public function presenter(array $annonces, string $titre = 'Catalogue'): array
     {

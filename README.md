@@ -1,10 +1,10 @@
 # poo-immo
 
-Exercice IT-Akademy : application PHP orientée objet d'un catalogue d'annonces immobilières pour s'entrainer sur les pratiques POO.
+Exercice IT-Akademy : application PHP orientée objet qui affiche un catalogue d'annonces immobilières depuis MySQL.
 
 ## Setup
 
-Depuis la racine du projet :
+Depuis la racine du projet.
 
 ### 1. Configurer les credentials
 
@@ -14,7 +14,7 @@ cp .env.exemple .env
 
 Puis éditer `.env` pour renseigner les vraies valeurs :
 
-```
+```env
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=poo_immo
@@ -31,11 +31,11 @@ php db/db.php
 
 Le script exécute, dans l'ordre, tous les `.sql` de `db/sql/` :
 
-- `01-create-database.sql` drop + create de la base `poo_immo`
-- `02-create-biens.sql` table `biens` + 15 lignes seed
-- `03-create-annonces.sql` table `annonces` + 15 lignes seed (FK vers `biens`)
+- `01-create-database.sql` : drop + create de la base `poo_immo`
+- `02-create-biens.sql` : table `biens` + données de démonstration
+- `03-create-annonces.sql` : table `annonces` + données de démonstration, avec clé étrangère vers `biens`
 
-Tous les scripts sont ré-exécutables (`DROP IF EXISTS`) : relancer `php db/db.php` reset complètement la base.
+Les scripts sont ré-exécutables grâce aux `DROP IF EXISTS`. Relancer `php db/db.php` réinitialise donc complètement la base.
 
 ### 3. Lancer le serveur
 
@@ -45,184 +45,221 @@ php -S localhost:8000
 
 Puis ouvrir [http://localhost:8000](http://localhost:8000).
 
-## Structure du projet
+### 4. Appliquer les réductions de démonstration
 
+```bash
+php bin/apply-reductions.php
 ```
+
+Ce script applique plusieurs réductions sur des annonces de vente et écrit les notifications dans `logs/logs.txt`.
+
+## Prérequis
+
+- PHP 8.1 ou plus récent, car le projet utilise les `enum`, les propriétés `readonly`, les types union et `static` en retour.
+- MySQL ou MariaDB pour la persistance.
+- Extension PDO MySQL activée.
+- Extension BCMath activée pour les calculs monétaires exacts.
+
+### BCMath et montants monétaires
+
+Les montants (`prix_initial`, `prix_avec_reduction`, `loyer`, `charges`) sont stockés en `DECIMAL` côté MySQL et manipulés en `string` côté PHP. PHP n'a pas de type décimal natif : utiliser `float` introduirait des erreurs d'arrondi sur les montants, par exemple avec des additions ou pourcentages répétés.
+
+BCMath est donc utilisé pour conserver une précision au centime :
+
+| Opération | À éviter | Utilisé dans le projet |
+| --- | --- | --- |
+| Addition | `$a + $b` | `bcadd($a, $b, 2)` |
+| Soustraction | `$a - $b` | `bcsub($a, $b, 2)` |
+| Multiplication | `$a * $b` | `bcmul($a, $b, 2)` |
+| Division | `$a / $b` | `bcdiv($a, $b, 2)` |
+| Comparaison | `$a <= 0` | `bccomp($a, '0', 2) <= 0` |
+
+Le paramètre `2` correspond à la scale, donc au nombre de décimales conservées. Pour vérifier l'extension :
+
+```bash
+php -m | grep bcmath
+```
+
+Sous Windows PowerShell :
+
+```powershell
+php -m | Select-String bcmath
+```
+
+## Structure du Projet
+
+```text
 poo-immo/
-├── index.php                          # Point d'entrée
-├── .env.exemple                                        
+├── index.php                         # Point d'entrée web : catalogue, recherche, exports
+├── .env.exemple                      # Exemple de configuration locale
 ├── assets/
 │   └── js/
-│       └── recherche.js               # Filtre live côté client (sous-chaîne)
+│       └── recherche.js              # Filtre live côté client
+├── bin/
+│   └── apply-reductions.php          # Script CLI de démonstration des réductions
 ├── config/
-│   └── database.php                   # Lit .env via EnvLoader et renvoie la config PDO
+│   └── database.php                  # Lit .env via EnvLoader et renvoie la config PDO
 ├── db/
-│   ├── db.php                         # Runner : exécute tous les .sql dans l'ordre
+│   ├── db.php                        # Runner SQL
 │   └── sql/
 │       ├── 01-create-database.sql
 │       ├── 02-create-biens.sql
 │       └── 03-create-annonces.sql
+├── logs/
+│   └── logs.txt                      # Généré par ReductionLogger
 └── src/
-    ├── autoload.php                   # Autoloader (mappe App\ vers src/)
+    ├── autoload.php                  # Autoloader App\ vers src/
     ├── Config/
-    │   └── EnvLoader.php              # Parseur .env minimaliste (zéro dépendance)
+    │   └── EnvLoader.php             # Parseur .env sans dépendance externe
     ├── Database/
-    │   ├── Database.php               # Singleton PDO
-    │   └── AnnonceRepository.php      # Impl. SQL de AnnonceRepositoryInterface
+    │   ├── Database.php              # Singleton PDO
+    │   └── AnnonceRepository.php     # Implémentation SQL du repository
     ├── Entity/
-    │   ├── Annonce/     
-    │   │   ├── Annonce.php            # Abstract
+    │   ├── Annonce/
+    │   │   ├── Annonce.php           # Classe abstraite commune
     │   │   ├── AnnonceVente.php
     │   │   ├── AnnonceLocation.php
-    │   │   ├── EtatAnnonce.php        # Enum
-    │   │   ├── AnnonceFactory.php     # Factory; Row → objet Annonce (+ Bien)
+    │   │   ├── EtatAnnonce.php       # Enum métier
+    │   │   ├── AnnonceFactory.php    # Hydratation row SQL -> objets métier
     │   │   └── AnnonceRepositoryInterface.php
-    │   └── Bien/  
-    │       ├── BienImmo.php           # Abstract
+    │   └── Bien/
+    │       ├── BienImmo.php          # Classe abstraite commune
     │       ├── Appartement.php
     │       └── Maison.php
+    ├── Exporter/
+    │   ├── ExporterInterface.php
+    │   ├── AnnonceArrayConverter.php
+    │   ├── JsonExporter.php
+    │   └── CsvExporter.php
+    ├── Formatter/
+    │   └── MoneyFormatter.php
+    ├── Logger/
+    │   └── ReductionLogger.php
+    ├── Observer/
+    │   └── ReductionObserver.php
     ├── Presenter/
     │   ├── AnnoncePresenter.php
     │   └── CataloguePresenter.php
-    ├── Formatter/
-    │   └── MoneyFormatter.php
-    └── Exporter/
-        ├── ExporterInterface.php
-        ├── AnnonceArrayConverter.php
-        ├── JsonExporter.php
-        └── CsvExporter.php
+    ├── Reduction/
+    │   └── Pourcentage.php
+    └── Service/
+        └── AppliqueReduction.php
 ```
 
-## Namespaces et autoload
+Toutes les classes applicatives vivent sous le namespace racine `App\`. L'autoloader de `src/autoload.php` mappe ce préfixe vers le dossier `src/`, ce qui permet à `index.php` et aux scripts CLI de ne charger qu'un seul fichier.
 
-Toutes les classes vivent sous le namespace racine `App\`, organisé en sous-namespaces calqués sur l'arborescence (`App\Entity\Annonce`, `App\Entity\Bien`, `App\Database`, `App\Config`, `App\Presenter`, `App\Formatter`, `App\Exporter`).
+Le schéma SQL applique une forme de Single Table Inheritance :
 
-L'autoloader maison dans `src/autoload.php` enregistre une callback `spl_autoload_register` qui mappe le préfixe `App\` vers le dossier `src/` :
+- `biens` contient les informations communes (`ville`, `surface`, `chambres`) et les colonnes spécifiques (`etage` pour un appartement, `terrain` pour une maison).
+- `annonces` contient les informations communes (`transaction`, `etat`, `date_publication`) et les colonnes spécifiques (`prix_initial` / `prix_avec_reduction` pour une vente, `loyer` / `charges` pour une location).
 
-```php
-// App\Entity\Bien\BienImmo  =>  src/Entity/Bien/BienImmo.php
-// App\Database\Database     =>  src/Database/Database.php
-```
+Les entités exposent les types sous forme de codes métier neutres (`appartement`, `maison`, `vente`, `location`). Les libellés visibles (`Appartement`, `Maison`, `Vente`, `Location`) sont produits par `AnnoncePresenter`.
 
-`index.php` ne contient donc qu'un seul `require_once` (celui de l'autoloader).
+## Principes SOLID
 
-## Persistance : MySQL + Singleton + Factory
+### S - Single Responsibility Principle
 
-### Singleton de connexion
+Chaque classe a une responsabilité limitée :
 
-`App\Database\Database` est un singleton qui encapsule l'instance PDO. Deux entrées selon le contexte :
+- `AnnonceRepository` fait uniquement l'accès SQL.
+- `AnnonceFactory` transforme une row SQL en objets métier.
+- `AnnoncePresenter` et `CataloguePresenter` préparent les données pour l'affichage HTML.
+- `JsonExporter` et `CsvExporter` gèrent seulement leur format d'export.
+- `AppliqueReduction` orchestre le cas d'usage "appliquer une réduction".
+- `ReductionLogger` écrit les notifications dans un fichier.
 
-```php
-Database::getInstance();   // connexion avec dbname (cas normal)
-Database::bootstrap();     // connexion sans dbname (pour le runner db.php
-                           // qui doit pouvoir DROP/CREATE DATABASE)
-```
+### O - Open/Closed Principle
 
-La config (host, port, dbname, etc.) est lue dans `.env` via `App\Config\EnvLoader` au moment de la première connexion. PDO est configuré en mode exceptions, fetch associatif, prepares non émulées.
+Le projet est ouvert à l'extension sans modifier toute la chaîne existante :
 
-### Repository
+- Ajouter un export revient à créer une classe qui implémente `ExporterInterface`, puis à l'enregistrer dans `index.php`.
+- Ajouter un observer revient à créer une classe qui implémente `ReductionObserver`, puis à l'abonner avec `subscribe()`.
+- Ajouter un type de bien ou d'annonce se fait d'abord via la classe concrète et le registre de `AnnonceFactory`. Si ce type a des champs spécifiques à afficher ou exporter, l'adaptation reste localisée dans `AnnoncePresenter` et `AnnonceArrayConverter`.
 
-`App\Database\AnnonceRepository` implémente `AnnonceRepositoryInterface` (le contrat défini côté domaine, dans `Entity/Annonce/`). Il ne fait que du SQL : `BASE_SELECT` joint `annonces` + `biens`, chaque méthode `findBy*` exécute un prepared statement et délègue la construction à la factory.
+### L - Liskov Substitution Principle
 
-### Factory
+Les classes concrètes peuvent remplacer leurs abstractions sans casser le code appelant :
 
-`App\Entity\Annonce\AnnonceFactory` reçoit une row (tableau associatif) et renvoie un `Annonce` typé (`AnnonceVente` ou `AnnonceLocation`) avec son `BienImmo` (`Appartement` ou `Maison`). La factory choisit la classe concrète à partir des discriminateurs `type` (bien) et `transaction` (annonce) via deux registries `[string => class-string]`.
+- `Appartement` et `Maison` sont manipulés comme des `BienImmo`.
+- `AnnonceVente` et `AnnonceLocation` sont manipulées comme des `Annonce`.
+- Les presenters et exporters s'appuient sur les getters métier (`getPrixCourant()`, `getLoyerCharges()`, `getTerrain()`, etc.) et gardent la mise en forme hors des entités.
 
-Méthodes publiques : `hydrate(array $row): Annonce` et `hydrateAll(array $rows): array`.
+### I - Interface Segregation Principle
 
-L'intérêt de cette séparation : `AnnonceRepository` n'importe plus que `Annonce`, `AnnonceFactory` et l'interface, il ne connaît pas les classes concrètes. La factory est réutilisable avec n'importe quelle source de row (BDD, CSV, mock de test).
+Les interfaces restent ciblées :
 
-### Schéma SQL : Single Table Inheritance
+- `ExporterInterface` expose uniquement ce dont `index.php` a besoin pour exporter : contenu, content-type, nom de fichier et format.
+- `AnnonceRepositoryInterface` décrit les opérations nécessaires au catalogue et au service de réduction.
+- `ReductionObserver` ne contient qu'une méthode : `onReductionAppliquee()`.
 
-L'héritage POO est aplati en deux tables avec colonnes discriminantes :
+### D - Dependency Inversion Principle
 
-- `biens(id, type, ville, surface, chambres, description, etage, terrain)` `etage` et `terrain` nullables, chacun pertinent pour un seul `type`.
-- `annonces(id, bien_id, transaction, etat, date_publication, prix, loyer, charges)` `prix` (vente) et `loyer`/`charges` (location) nullables. FK vers `biens` avec `ON DELETE CASCADE`.
+Les services de haut niveau dépendent de contrats plutôt que de détails :
 
-### Ajouter un nouveau type
+- `AppliqueReduction` dépend de `AnnonceRepositoryInterface`, pas directement de `AnnonceRepository`.
+- Les notifications passent par `ReductionObserver`, ce qui permet de remplacer le logger fichier par un mailer, un webhook ou une autre sortie.
+- `index.php` compose les objets concrets au bord de l'application.
 
-Pour ajouter un type de bien (ex: `Terrain`) :
+## Design Patterns
 
-1. Créer `src/Entity/Bien/Terrain.php` avec son `::fromArray()`.
-2. Ajouter `'terrain' => Terrain::class` dans `AnnonceFactory::BIEN_TYPES`.
-3. Ajouter la valeur à l'ENUM SQL (`ALTER TABLE biens MODIFY type ENUM('appartement', 'maison', 'terrain') NOT NULL;`).
+### Singleton → une seule instance
 
-Le repository, les presenters et les exporters ne bougent pas c'est le bénéfice du contrat `AnnonceRepositoryInterface` côté domaine.
+`App\Database\Database` garantit une seule instance de connexion PDO via `Database::getInstance()`. La propriété statique `$instance` conserve l'objet déjà créé, ce qui évite de rouvrir une connexion à chaque repository.
 
-## Précision monétaire : DECIMAL + BCMath
+`Database::bootstrap()` utilise le même mécanisme mais se connecte sans `dbname`, pour permettre au runner `db/db.php` de créer ou recréer la base.
 
-Les montants (`prix`, `loyer`, `charges`) sont **stockés en `DECIMAL` côté MySQL et manipulés en `string` côté PHP**, avec arithmétique exacte via l'extension BCMath.
+### Observer → notifications automatiques
 
-### Pourquoi pas `float` ?
+`App\Service\AppliqueReduction` joue le rôle de Subject :
 
-Le `float` PHP utilise IEEE 754 binaire et ne peut pas représenter exactement certaines valeurs décimales : `0.1 + 0.2 === 0.3` retourne `false`. Sur des additions/multiplications répétées (promotions cumulées, totaux), l'erreur s'accumule. `DECIMAL` côté BDD garantit la valeur exacte sur disque, mais PHP n'a pas de type décimal natif, donc on garde la string.
+- `subscribe(ReductionObserver $observer)` ajoute un observer.
+- `appliquer()` modifie le prix en base.
+- `notifier()` déclenche automatiquement tous les observers après la réduction.
 
-### Comment la valeur circule
+`App\Logger\ReductionLogger` implémente `ReductionObserver` et écrit chaque réduction dans `logs/logs.txt`. On peut ajouter d'autres notifications sans modifier le service.
 
-```
-DB : DECIMAL(12,2)  →  PDO renvoie "180000.00" (string)  →  fromArray cast (string)
-                    →  propriétés `string` dans l'entité  →  calculs via bc*
-                    →  MoneyFormatter : (float) UNIQUEMENT pour number_format()
-```
+### Strategy → comportement interchangeable
 
-Le seul endroit où on accepte de perdre la précision est `MoneyFormatter::format()`, parce qu'on n'affiche jamais plus de 2 décimales. Toute la chaîne en amont reste exacte.
+L'export utilise le Strategy pattern :
 
-### Patterns d'usage
+- `ExporterInterface` définit le contrat commun.
+- `JsonExporter` fournit la stratégie JSON.
+- `CsvExporter` fournit la stratégie CSV.
+- `index.php` choisit la stratégie selon `?export=json` ou `?export=csv`.
 
-| Opération     | float (à éviter)  | BCMath (à utiliser)         |
-| ------------- | ----------------- | --------------------------- |
-| Addition      | `$a + $b`         | `bcadd($a, $b, 2)`          |
-| Soustraction  | `$a - $b`         | `bcsub($a, $b, 2)`          |
-| Multiplication| `$a * $b`         | `bcmul($a, $b, 2)`          |
-| Division      | `$a / $b`         | `bcdiv($a, $b, 2)`          |
-| Comparaison   | `$a <= 0`         | `bccomp($a, '0', 2) <= 0`   |
+Le code d'appel manipule donc un `ExporterInterface` et ne dépend pas du format concret.
 
-Le paramètre `2` est la **scale** : nombre de décimales conservées. Comparer sans scale tronque à l'entier (`bccomp("0.50", "0")` retourne `0` = égal au lieu de `1`), d'où le `2` partout pour rester précis au centime.
+### Factory → création d'objets centralisée
 
-### Prérequis
+`App\Entity\Annonce\AnnonceFactory` centralise la création des objets métier depuis les lignes SQL :
 
-Extension `ext-bcmath` activée (incluse dans la plupart des distributions PHP, vérifie via `php -m | grep bcmath`).
+- `type = appartement` crée un `Appartement`.
+- `type = maison` crée une `Maison`.
+- `transaction = vente` crée une `AnnonceVente`.
+- `transaction = location` crée une `AnnonceLocation`.
+
+Le repository ne connaît pas les classes concrètes à instancier : il récupère des rows SQL et délègue l'hydratation à la factory.
 
 ## Typage PHP
 
-- `declare(strict_types=1);` en tête de chaque fichier (refus des conversions implicites).
-- Types nullable (`?Type`) : `findOneByVille(string $ville): ?Annonce`, `?DateTimeImmutable $datePublication = null`.
-- Types union (`int|float`) sur les paramètres **physiques** (surface, terrain) pour accepter aussi bien `45` que `45.0`. Les montants **monétaires** sont en revanche typés `string` (cf. section « Précision monétaire »).
-- Enum tiré (`enum EtatAnnonce: string`) pour les états métier d'une annonce avec un `match` exhaustif.
-- Propriétés `readonly` sur tout ce qui est logiquement immuable après construction :
-  - `BienImmo` : `ville`, `surface`, `chambres`, `description`
-  - `Appartement::etage`, `Maison::terrain`
-  - `Annonce::bien`, `Annonce::datePublication`
-  - `AnnonceVente::prix`, `AnnonceLocation::loyer`, `AnnonceLocation::charges`
-  - `CsvExporter::separator`, `CsvExporter::withBom`
-- Seul `Annonce::etat` reste mutable, car le cycle de vie d'une annonce (disponible, en négociation, indisponible) implique de pouvoir le changer après publication via `setEtat()`.
-- Les setters de validation ont été supprimés ; la validation est inlinée dans le constructeur.
+- `declare(strict_types=1);` est présent dans les fichiers PHP pour refuser les conversions implicites.
+- Les propriétés immuables utilisent `readonly`, par exemple dans `BienImmo`, `Annonce`, `AnnonceVente`, `AnnonceLocation`, `Database` et `CsvExporter`.
+- Les montants sont typés `string` pour rester compatibles avec `DECIMAL` et BCMath.
+- Les valeurs physiques comme la surface ou le terrain utilisent `int|float`.
+- Les retours nullable sont explicites, par exemple `findById(int $id): ?Annonce`.
+- `EtatAnnonce` est un `enum EtatAnnonce: string`, avec un `match` pour produire le libellé métier.
+- Les tableaux complexes sont documentés avec PHPDoc, par exemple `@return Annonce[]` ou `array<string, string|int|float|null>`.
+- `Annonce::etat` reste volontairement mutable via `setEtat()`, car l'état d'une annonce peut évoluer après publication.
 
-## Recherche
+## Export
 
-Un champ de recherche en haut du catalogue filtre les annonces au fur et à mesure de la frappe, côté client, sans rechargement de page. La logique tient dans `assets/js/recherche.js`, chargé en `defer` depuis `index.php` pour bien séparer HTML et JS.
-
-Comment ça marche :
-
-- La saisie de l'utilisateur est comparée au titre de l'annonce via `String.prototype.includes()`, après passage des deux chaînes en minuscules pour rester insensible à la casse.
-- Le filtre s'applique sur le titre de l'annonce (`Appartement à Lyon`, `Maison à Bordeaux`, etc.), exposé via l'attribut `data-titre` de chaque `<article>`.
-- Le compteur `X / Y annonces` se met à jour à chaque frappe.
-
-| Saisie          | Effet                                                 |
-| --------------- | ----------------------------------------------------- |
-| `lyon`        | les annonces dont le titre contient "lyon"            |
-| `ly`          | "Lyon", mais aussi tout titre contenant la suite "ly" |
-| `appartement` | toutes les annonces dont le titre contient ce mot     |
-
-Le filtrage est purement visuel.
-
-## Export du catalogue
-
-Deux formats disponibles, accessibles depuis les boutons en haut de la page ou directement via URL :
+Deux formats sont disponibles depuis les boutons en haut du catalogue ou directement via URL :
 
 | Format | URL              | Fichier généré             |
 | ------ | ---------------- | ----------------------------- |
 | JSON   | `?export=json` | `catalogue-AAAA-MM-JJ.json` |
 | CSV    | `?export=csv`  | `catalogue-AAAA-MM-JJ.csv`  |
 
-Le CSV utilise `;` comme séparateur et un BOM UTF-8 (compatible Excel en français).
+Le CSV utilise `;` comme séparateur et ajoute un BOM UTF-8 pour une meilleure compatibilité avec Excel en français.
+
+Les exports utilisent les codes métier neutres (`appartement`, `maison`, `vente`, `location`) plutôt que les libellés affichés dans le catalogue.

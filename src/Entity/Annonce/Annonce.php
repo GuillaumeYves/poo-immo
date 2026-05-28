@@ -5,23 +5,35 @@ declare(strict_types=1);
 namespace App\Entity\Annonce;
 
 use App\Entity\Bien\BienImmo;
-use App\Formatter\MoneyFormatter;
 use DateTimeImmutable;
+use InvalidArgumentException;
 
 abstract class Annonce
 {
+    protected readonly int $id;
     protected readonly BienImmo $bien;
     protected readonly DateTimeImmutable $datePublication;
     protected EtatAnnonce $etat;
 
     public function __construct(
+        int $id,
         BienImmo $bien,
         ?DateTimeImmutable $datePublication = null,
         EtatAnnonce $etat = EtatAnnonce::Disponible,
     ) {
+        if ($id <= 0) {
+            throw new InvalidArgumentException("L'id d'une annonce doit être strictement positif.");
+        }
+
+        $this->id              = $id;
         $this->bien            = $bien;
         $this->datePublication = $datePublication ?? new DateTimeImmutable();
         $this->etat            = $etat;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
     }
 
     public function getBien(): BienImmo
@@ -45,18 +57,6 @@ abstract class Annonce
     }
 
     abstract public function getTypeTransaction(): string;
-
-    abstract public function getMontant(): string;
-
-    /**
-     * @return array<int, array{0: string, 1: string}>
-     */
-    abstract public function getAttributsAffichage(MoneyFormatter $formatter): array;
-
-    /**
-     * @return array<string, int|float|string|null>
-     */
-    abstract public function toExportRow(): array;
 
     /**
      * @param array<string, mixed> $row

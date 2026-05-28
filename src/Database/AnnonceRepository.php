@@ -8,7 +8,6 @@ use App\Entity\Annonce\Annonce;
 use App\Entity\Annonce\AnnonceFactory;
 use App\Entity\Annonce\AnnonceRepositoryInterface;
 use PDO;
-use RuntimeException;
 
 final class AnnonceRepository implements AnnonceRepositoryInterface
 {
@@ -17,7 +16,8 @@ final class AnnonceRepository implements AnnonceRepositoryInterface
                 a.transaction      AS transaction,
                 a.etat             AS etat,
                 a.date_publication AS datePublication,
-                a.prix             AS prix,
+                a.prix_initial        AS prix_initial,
+                a.prix_avec_reduction AS prix_avec_reduction,
                 a.loyer            AS loyer,
                 a.charges          AS charges,
                 b.id               AS bien_id,
@@ -41,20 +41,22 @@ final class AnnonceRepository implements AnnonceRepositoryInterface
         $this->factory = $factory ?? new AnnonceFactory();
     }
 
-    public function add(Annonce $annonce): void
-    {
-        throw new RuntimeException(
-            'AnnonceRepository::add() non implémenté : '
-            . 'la persistance d\'ajout sort du périmètre actuel (il faudrait notamment un BienRepository et un id sur BienImmo).'
-        );
-    }
-
     /** @return Annonce[] */
     public function findAll(): array
     {
         $stmt = $this->pdo->query(self::BASE_SELECT . ' ORDER BY a.id');
 
         return $this->factory->hydrateAll($stmt->fetchAll());
+    }
+
+    public function findById(int $id): ?Annonce
+    {
+        $stmt = $this->pdo->prepare(self::BASE_SELECT . ' WHERE a.id = :id LIMIT 1');
+        $stmt->execute(['id' => $id]);
+
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $this->factory->hydrate($row);
     }
 
     public function findOneByVille(string $ville): ?Annonce
@@ -97,5 +99,14 @@ final class AnnonceRepository implements AnnonceRepositoryInterface
     public function count(): int
     {
         return (int) $this->pdo->query('SELECT COUNT(*) FROM annonces')->fetchColumn();
+    }
+
+    public function updatePrixCourant(int $id, string $nouveauPrix): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE annonces SET prix_avec_reduction = :prix WHERE id = :id');
+        $stmt->execute([
+            'prix' => $nouveauPrix,
+            'id'   => $id,
+        ]);
     }
 }
