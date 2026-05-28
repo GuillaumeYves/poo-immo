@@ -149,11 +149,45 @@ Pour ajouter un type de bien (ex: `Terrain`) :
 
 Le repository, les presenters et les exporters ne bougent pas c'est le bénéfice du contrat `AnnonceRepositoryInterface` côté domaine.
 
+## Précision monétaire : DECIMAL + BCMath
+
+Les montants (`prix`, `loyer`, `charges`) sont **stockés en `DECIMAL` côté MySQL et manipulés en `string` côté PHP**, avec arithmétique exacte via l'extension BCMath.
+
+### Pourquoi pas `float` ?
+
+Le `float` PHP utilise IEEE 754 binaire et ne peut pas représenter exactement certaines valeurs décimales : `0.1 + 0.2 === 0.3` retourne `false`. Sur des additions/multiplications répétées (promotions cumulées, totaux), l'erreur s'accumule. `DECIMAL` côté BDD garantit la valeur exacte sur disque, mais PHP n'a pas de type décimal natif, donc on garde la string.
+
+### Comment la valeur circule
+
+```
+DB : DECIMAL(12,2)  →  PDO renvoie "180000.00" (string)  →  fromArray cast (string)
+                    →  propriétés `string` dans l'entité  →  calculs via bc*
+                    →  MoneyFormatter : (float) UNIQUEMENT pour number_format()
+```
+
+Le seul endroit où on accepte de perdre la précision est `MoneyFormatter::format()`, parce qu'on n'affiche jamais plus de 2 décimales. Toute la chaîne en amont reste exacte.
+
+### Patterns d'usage
+
+| Opération     | float (à éviter)  | BCMath (à utiliser)         |
+| ------------- | ----------------- | --------------------------- |
+| Addition      | `$a + $b`         | `bcadd($a, $b, 2)`          |
+| Soustraction  | `$a - $b`         | `bcsub($a, $b, 2)`          |
+| Multiplication| `$a * $b`         | `bcmul($a, $b, 2)`          |
+| Division      | `$a / $b`         | `bcdiv($a, $b, 2)`          |
+| Comparaison   | `$a <= 0`         | `bccomp($a, '0', 2) <= 0`   |
+
+Le paramètre `2` est la **scale** : nombre de décimales conservées. Comparer sans scale tronque à l'entier (`bccomp("0.50", "0")` retourne `0` = égal au lieu de `1`), d'où le `2` partout pour rester précis au centime.
+
+### Prérequis
+
+Extension `ext-bcmath` activée (incluse dans la plupart des distributions PHP, vérifie via `php -m | grep bcmath`).
+
 ## Typage PHP
 
 - `declare(strict_types=1);` en tête de chaque fichier (refus des conversions implicites).
 - Types nullable (`?Type`) : `findOneByVille(string $ville): ?Annonce`, `?DateTimeImmutable $datePublication = null`.
-- Types union (`int|float`) sur les paramètres numériques pour accepter aussi bien `180000` que `180000.0`.
+- Types union (`int|float`) sur les paramètres **physiques** (surface, terrain) pour accepter aussi bien `45` que `45.0`. Les montants **monétaires** sont en revanche typés `string` (cf. section « Précision monétaire »).
 - Enum tiré (`enum EtatAnnonce: string`) pour les états métier d'une annonce avec un `match` exhaustif.
 - Propriétés `readonly` sur tout ce qui est logiquement immuable après construction :
   - `BienImmo` : `ville`, `surface`, `chambres`, `description`
