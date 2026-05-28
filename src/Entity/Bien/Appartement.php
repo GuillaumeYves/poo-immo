@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Entity;
+namespace App\Entity\Bien;
 
 use InvalidArgumentException;
 use RuntimeException;
@@ -28,7 +28,7 @@ class Appartement extends BienImmo
     {
         return new self(
             (string) ($row['ville']    ?? throw new RuntimeException('Bien sans ville.')),
-            $row['surface']            ?? throw new RuntimeException('Bien sans surface.'),
+            (float) ($row['surface']   ?? throw new RuntimeException('Bien sans surface.')),
             (int) ($row['chambres']    ?? throw new RuntimeException('Bien sans chambres.')),
             (int) ($row['etage'] ?? 0),
             isset($row['description']) ? (string) $row['description'] : null,

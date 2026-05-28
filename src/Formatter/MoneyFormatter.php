@@ -6,7 +6,7 @@ namespace App\Formatter;
 
 final class MoneyFormatter
 {
-    public function format(int|float $montant): string
+    public function format(string $montant): string
     {
         return number_format((float) $montant, 0, ',', ' ') . ' €';
     }

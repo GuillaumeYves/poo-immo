@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/autoload.php';
 
-use App\Database\JsonDataRepository;
+use App\Database\AnnonceRepository;
 use App\Exporter\CsvExporter;
 use App\Exporter\ExporterInterface;
 use App\Exporter\JsonExporter;
@@ -12,7 +12,7 @@ use App\Formatter\MoneyFormatter;
 use App\Presenter\AnnoncePresenter;
 use App\Presenter\CataloguePresenter;
 
-$repository = new JsonDataRepository(__DIR__ . '/data');
+$repository = new AnnonceRepository();
 $presenter  = new CataloguePresenter(new AnnoncePresenter(new MoneyFormatter()));
 
 /** @var ExporterInterface[] $exporters */

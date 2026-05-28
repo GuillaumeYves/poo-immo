@@ -2,9 +2,42 @@
 
 Exercice IT-Akademy : application PHP orientée objet d'un catalogue d'annonces immobilières pour s'entrainer sur les pratiques POO.
 
-## Lancement
+## Setup
 
 Depuis la racine du projet :
+
+### 1. Configurer les credentials
+
+```bash
+cp .env.exemple .env
+```
+
+Puis éditer `.env` pour renseigner les vraies valeurs :
+
+```
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=poo_immo
+DB_USER=root
+DB_PASSWORD=ton_mot_de_passe
+DB_CHARSET=utf8mb4
+```
+
+### 2. Créer et peupler la base
+
+```bash
+php db/db.php
+```
+
+Le script exécute, dans l'ordre, tous les `.sql` de `db/sql/` :
+
+- `01-create-database.sql` drop + create de la base `poo_immo`
+- `02-create-biens.sql` table `biens` + 15 lignes seed
+- `03-create-annonces.sql` table `annonces` + 15 lignes seed (FK vers `biens`)
+
+Tous les scripts sont ré-exécutables (`DROP IF EXISTS`) : relancer `php db/db.php` reset complètement la base.
+
+### 3. Lancer le serveur
 
 ```bash
 php -S localhost:8000
@@ -16,29 +49,41 @@ Puis ouvrir [http://localhost:8000](http://localhost:8000).
 
 ```
 poo-immo/
-├── index.php                    # Point d'entrée : bootstrap, rendu HTML, routage export
+├── index.php                          # Point d'entrée
+├── .env.exemple                                        
 ├── assets/
 │   └── js/
 │       └── recherche.js               # Filtre live côté client (sous-chaîne)
-├── data/                               # Fixtures hors du code source
-│   ├── biens.seed.json                # Seed de biens (indexés par id)
-│   └── annonces.seed.json             # Seed d'annonces (référencent les biens par bienId)
+├── config/
+│   └── database.php                   # Lit .env via EnvLoader et renvoie la config PDO
+├── db/
+│   ├── db.php                         # Runner : exécute tous les .sql dans l'ordre
+│   └── sql/
+│       ├── 01-create-database.sql
+│       ├── 02-create-biens.sql
+│       └── 03-create-annonces.sql
 └── src/
-    ├── autoload.php                    # Autoloader (mappe App\ vers src/)
-    ├── Entity/                         # Coeur métier (survit à un changement de persistance)
-    │   ├── BienImmo.php                 # Abstract : ville, surface, chambres + méthodes d'affichage/export
-    │   ├── Appartement.php             # BienImmo + étage + ::fromArray()
-    │   ├── Maison.php                  # BienImmo + terrain + ::fromArray()
-    │   ├── Annonce.php                 # Abstract : bien, date, état + méthodes d'affichage/export
-    │   ├── AnnonceVente.php            # Annonce + prix + ::fromArray()
-    │   ├── AnnonceLocation.php         # Annonce + loyer/charges + ::fromArray()
-    │   ├── EtatAnnonce.php             # Enum
-    │   └── AnnonceRepositoryInterface.php  # Port du domaine (le seul qui compte pour futur ajout MySQL)
+    ├── autoload.php                   # Autoloader (mappe App\ vers src/)
+    ├── Config/
+    │   └── EnvLoader.php              # Parseur .env minimaliste (zéro dépendance)
     ├── Database/
-    │   └── JsonDataRepository.php      # Implémentation actuelle : lit le dossier /data
+    │   ├── Database.php               # Singleton PDO
+    │   └── AnnonceRepository.php      # Impl. SQL de AnnonceRepositoryInterface
+    ├── Entity/
+    │   ├── Annonce/     
+    │   │   ├── Annonce.php            # Abstract
+    │   │   ├── AnnonceVente.php
+    │   │   ├── AnnonceLocation.php
+    │   │   ├── EtatAnnonce.php        # Enum
+    │   │   ├── AnnonceFactory.php     # Factory; Row → objet Annonce (+ Bien)
+    │   │   └── AnnonceRepositoryInterface.php
+    │   └── Bien/  
+    │       ├── BienImmo.php           # Abstract
+    │       ├── Appartement.php
+    │       └── Maison.php
     ├── Presenter/
-    │   ├── AnnoncePresenter.php        # Présente une annonce (mise en forme pour template)
-    │   └── CataloguePresenter.php      # Présente l'ensemble (entête + itération)
+    │   ├── AnnoncePresenter.php
+    │   └── CataloguePresenter.php
     ├── Formatter/
     │   └── MoneyFormatter.php
     └── Exporter/
@@ -46,24 +91,103 @@ poo-immo/
         ├── AnnonceArrayConverter.php
         ├── JsonExporter.php
         └── CsvExporter.php
+```
 
 ## Namespaces et autoload
 
-Toutes les classes vivent sous le namespace racine `App\`, organisé en sous-namespaces calqués sur l'arborescence (`App\Entity`, `App\Database`, `App\Presenter`, `App\Formatter`, `App\Exporter`).
+Toutes les classes vivent sous le namespace racine `App\`, organisé en sous-namespaces calqués sur l'arborescence (`App\Entity\Annonce`, `App\Entity\Bien`, `App\Database`, `App\Config`, `App\Presenter`, `App\Formatter`, `App\Exporter`).
 
 L'autoloader maison dans `src/autoload.php` enregistre une callback `spl_autoload_register` qui mappe le préfixe `App\` vers le dossier `src/` :
 
 ```php
-// App\Entity\BienImmo  =>  src/Entity/BienImmo.php
+// App\Entity\Bien\BienImmo  =>  src/Entity/Bien/BienImmo.php
+// App\Database\Database     =>  src/Database/Database.php
 ```
 
-`index.php` ne contient donc qu'un seul `require_once` (celui de l'autoloader) au lieu d'une dizaine.
+`index.php` ne contient donc qu'un seul `require_once` (celui de l'autoloader).
+
+## Persistance : MySQL + Singleton + Factory
+
+### Singleton de connexion
+
+`App\Database\Database` est un singleton qui encapsule l'instance PDO. Deux entrées selon le contexte :
+
+```php
+Database::getInstance();   // connexion avec dbname (cas normal)
+Database::bootstrap();     // connexion sans dbname (pour le runner db.php
+                           // qui doit pouvoir DROP/CREATE DATABASE)
+```
+
+La config (host, port, dbname, etc.) est lue dans `.env` via `App\Config\EnvLoader` au moment de la première connexion. PDO est configuré en mode exceptions, fetch associatif, prepares non émulées.
+
+### Repository
+
+`App\Database\AnnonceRepository` implémente `AnnonceRepositoryInterface` (le contrat défini côté domaine, dans `Entity/Annonce/`). Il ne fait que du SQL : `BASE_SELECT` joint `annonces` + `biens`, chaque méthode `findBy*` exécute un prepared statement et délègue la construction à la factory.
+
+### Factory
+
+`App\Entity\Annonce\AnnonceFactory` reçoit une row (tableau associatif) et renvoie un `Annonce` typé (`AnnonceVente` ou `AnnonceLocation`) avec son `BienImmo` (`Appartement` ou `Maison`). La factory choisit la classe concrète à partir des discriminateurs `type` (bien) et `transaction` (annonce) via deux registries `[string => class-string]`.
+
+Méthodes publiques : `hydrate(array $row): Annonce` et `hydrateAll(array $rows): array`.
+
+L'intérêt de cette séparation : `AnnonceRepository` n'importe plus que `Annonce`, `AnnonceFactory` et l'interface, il ne connaît pas les classes concrètes. La factory est réutilisable avec n'importe quelle source de row (BDD, CSV, mock de test).
+
+### Schéma SQL : Single Table Inheritance
+
+L'héritage POO est aplati en deux tables avec colonnes discriminantes :
+
+- `biens(id, type, ville, surface, chambres, description, etage, terrain)` `etage` et `terrain` nullables, chacun pertinent pour un seul `type`.
+- `annonces(id, bien_id, transaction, etat, date_publication, prix, loyer, charges)` `prix` (vente) et `loyer`/`charges` (location) nullables. FK vers `biens` avec `ON DELETE CASCADE`.
+
+### Ajouter un nouveau type
+
+Pour ajouter un type de bien (ex: `Terrain`) :
+
+1. Créer `src/Entity/Bien/Terrain.php` avec son `::fromArray()`.
+2. Ajouter `'terrain' => Terrain::class` dans `AnnonceFactory::BIEN_TYPES`.
+3. Ajouter la valeur à l'ENUM SQL (`ALTER TABLE biens MODIFY type ENUM('appartement', 'maison', 'terrain') NOT NULL;`).
+
+Le repository, les presenters et les exporters ne bougent pas c'est le bénéfice du contrat `AnnonceRepositoryInterface` côté domaine.
+
+## Précision monétaire : DECIMAL + BCMath
+
+Les montants (`prix`, `loyer`, `charges`) sont **stockés en `DECIMAL` côté MySQL et manipulés en `string` côté PHP**, avec arithmétique exacte via l'extension BCMath.
+
+### Pourquoi pas `float` ?
+
+Le `float` PHP utilise IEEE 754 binaire et ne peut pas représenter exactement certaines valeurs décimales : `0.1 + 0.2 === 0.3` retourne `false`. Sur des additions/multiplications répétées (promotions cumulées, totaux), l'erreur s'accumule. `DECIMAL` côté BDD garantit la valeur exacte sur disque, mais PHP n'a pas de type décimal natif, donc on garde la string.
+
+### Comment la valeur circule
+
+```
+DB : DECIMAL(12,2)  →  PDO renvoie "180000.00" (string)  →  fromArray cast (string)
+                    →  propriétés `string` dans l'entité  →  calculs via bc*
+                    →  MoneyFormatter : (float) UNIQUEMENT pour number_format()
+```
+
+Le seul endroit où on accepte de perdre la précision est `MoneyFormatter::format()`, parce qu'on n'affiche jamais plus de 2 décimales. Toute la chaîne en amont reste exacte.
+
+### Patterns d'usage
+
+| Opération     | float (à éviter)  | BCMath (à utiliser)         |
+| ------------- | ----------------- | --------------------------- |
+| Addition      | `$a + $b`         | `bcadd($a, $b, 2)`          |
+| Soustraction  | `$a - $b`         | `bcsub($a, $b, 2)`          |
+| Multiplication| `$a * $b`         | `bcmul($a, $b, 2)`          |
+| Division      | `$a / $b`         | `bcdiv($a, $b, 2)`          |
+| Comparaison   | `$a <= 0`         | `bccomp($a, '0', 2) <= 0`   |
+
+Le paramètre `2` est la **scale** : nombre de décimales conservées. Comparer sans scale tronque à l'entier (`bccomp("0.50", "0")` retourne `0` = égal au lieu de `1`), d'où le `2` partout pour rester précis au centime.
+
+### Prérequis
+
+Extension `ext-bcmath` activée (incluse dans la plupart des distributions PHP, vérifie via `php -m | grep bcmath`).
 
 ## Typage PHP
 
 - `declare(strict_types=1);` en tête de chaque fichier (refus des conversions implicites).
 - Types nullable (`?Type`) : `findOneByVille(string $ville): ?Annonce`, `?DateTimeImmutable $datePublication = null`.
-- Types union (`int|float`) sur les paramètres numériques pour accepter aussi bien `180000` que `180000.0`.
+- Types union (`int|float`) sur les paramètres **physiques** (surface, terrain) pour accepter aussi bien `45` que `45.0`. Les montants **monétaires** sont en revanche typés `string` (cf. section « Précision monétaire »).
 - Enum tiré (`enum EtatAnnonce: string`) pour les états métier d'une annonce avec un `match` exhaustif.
 - Propriétés `readonly` sur tout ce qui est logiquement immuable après construction :
   - `BienImmo` : `ville`, `surface`, `chambres`, `description`
@@ -73,96 +197,6 @@ L'autoloader maison dans `src/autoload.php` enregistre une callback `spl_autoloa
   - `CsvExporter::separator`, `CsvExporter::withBom`
 - Seul `Annonce::etat` reste mutable, car le cycle de vie d'une annonce (disponible, en négociation, indisponible) implique de pouvoir le changer après publication via `setEtat()`.
 - Les setters de validation ont été supprimés ; la validation est inlinée dans le constructeur.
-
-## Seed JSON
-
-Le catalogue n'est pas codé en dur dans `index.php`. Biens et annonces sont décrits dans deux fichiers séparés sous `data/`, à la manière de deux tables relationnelles liées par un id.
-
-### `biens.seed.json`
-
-Tableau de biens, chacun identifié par un `id` (clé étrangère utilisée côté annonces) :
-
-```json
-[
-  {
-    "id": "lyon-01",
-    "type": "appartement",
-    "ville": "Lyon",
-    "surface": 45,
-    "chambres": 2,
-    "etage": 3
-  }
-]
-```
-
-| Clé            | Valeurs                                           |
-| --------------- | ------------------------------------------------- |
-| `id`          | string unique dans le fichier                     |
-| `type`        | `"appartement"` ou `"maison"`                 |
-| `ville`       | string non vide                                   |
-| `surface`     | nombre > 0                                        |
-| `chambres`    | entier >= 0                                       |
-| `etage`       | (appartement, optionnel) entier >= 0, défaut = 0 |
-| `terrain`     | (maison, requis) nombre > 0                       |
-| `description` | (optionnel)                                       |
-
-### `annonces.seed.json`
-
-Tableau d'annonces référençant un bien par son `bienId` :
-
-```json
-[
-  {
-    "bienId": "lyon-01",
-    "transaction": "vente",
-    "etat": "disponible",
-    "prix": 180000
-  }
-]
-```
-
-| Clé                | Valeurs                                                    |
-| ------------------- | ---------------------------------------------------------- |
-| `bienId`          | doit exister dans `data/biens.seed.json`                 |
-| `transaction`     | `"vente"` ou `"location"`                              |
-| `etat`            | `"disponible"`, `"en_negociation"`, `"indisponible"` |
-| `datePublication` | (optionnel) ISO 8601, défaut = maintenant                 |
-| `prix`            | requis si `transaction = vente`                          |
-| `loyer`           | requis si `transaction = location`                       |
-| `charges`         | (optionnel) défaut = 0                                    |
-
-### Orchestration : `JsonDataRepository`
-
-Un seul service infra (`App\Database\JsonDataRepository`) implémente `AnnonceRepositoryInterface` et fait tout le travail :
-
-```php
-$repository = new JsonDataRepository(__DIR__ . '/data');
-```
-
-Sous le capot :
-
-1. Lit `biens.seed.json`. Pour chaque ligne, regarde `type` dans une registry `[string => class-string]` interne et appelle `Classe::fromArray($row)` (constructeur nommé sur l'entité). Retourne `array<string, BienImmo>` indexé par id.
-2. Lit `annonces.seed.json`. Résout `bienId` contre la map précédente (orphelin = `RuntimeException`), résout `etat` (enum) et `datePublication`, puis appelle `Classe::fromArray($row, $bien, $etat, $date)` selon la transaction.
-3. Les annonces hydratées sont stockées dans une collection interne — l'instance est elle-même le repository (typée `AnnonceRepositoryInterface`).
-
-Ajouter un nouveau type (ex: `Terrain`) :
-
-1. Créer `src/Entity/Terrain.php` avec sa méthode statique `::fromArray()`.
-2. Ajouter une ligne dans la registry `JsonDataRepository::BIEN_TYPES` : `'terrain' => Terrain::class`.
-
-Aucun autre fichier modifié. Voir [`SOLID-refactor.md`](SOLID-refactor.md) pour le cheminement complet.
-
-### Brancher MySQL plus tard
-
-`AnnonceRepositoryInterface` vit dans `Entity/` côté domaine, c'est le seul contrat que le reste du code (presenters, exporters) connaît. Le jour où l'on passe à MySQL :
-
-```php
-// 1. Créer src/Database/MysqlAnnonceRepository.php qui implémente AnnonceRepositoryInterface
-// 2. Une seule ligne change dans index.php :
-$repository = new MysqlAnnonceRepository($pdo);
-```
-
-Le domaine, les presenters et les exporters ne bougent pas. `JsonDataRepository` peut être conservé pour les tests/dev.
 
 ## Recherche
 
@@ -180,7 +214,7 @@ Comment ça marche :
 | `ly`          | "Lyon", mais aussi tout titre contenant la suite "ly" |
 | `appartement` | toutes les annonces dont le titre contient ce mot     |
 
-Le filtrage est purement visuel : les exports JSON et CSV continuent de contenir toutes les annonces du repository.
+Le filtrage est purement visuel.
 
 ## Export du catalogue
 
