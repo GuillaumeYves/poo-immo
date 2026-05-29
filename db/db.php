@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
-/**
- * Lance les commandes dans l'ordre pour démarrer la bdd
- * Usage : php db/db.php
- */
-
 require_once __DIR__ . '/../src/autoload.php';
 
-use App\Database\Database;
+/* Récupère la config de la base de données */
+use App\Model\Repository\Database;
 
+/* Prépare et exécute les scripts SQL pour créer la base de données et les tables */
 $sqlDir = __DIR__ . '/sql';
 $files  = glob($sqlDir . '/*.sql');
 
@@ -25,7 +22,7 @@ $db = Database::bootstrap();
 
 foreach ($files as $file) {
     $name = basename($file);
-    echo "→ {$name}\n";
+    echo "{$name}\n";
 
     $sql = file_get_contents($file);
     if ($sql === false) {
@@ -35,12 +32,10 @@ foreach ($files as $file) {
 
     try {
         $db->execScript($sql);
+        echo "→ succès'\n";
     } catch (Throwable $e) {
         fwrite(STDERR, "  ✗ {$e->getMessage()}\n");
+        echo "→ échec'\n";
         exit(1);
     }
-
-    echo "  ✓ ok\n";
 }
-
-echo "\nBase prête.\n";

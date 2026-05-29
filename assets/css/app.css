@@ -1,0 +1,108 @@
+/* Flèche personnalisée pour tous les sélecteurs, avec une marge à droite. */
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716c' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 0.7rem;
+    padding-right: 2.5rem !important;
+}
+
+.catalogue-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.catalogue-list[data-view-mode="cartouche"] {
+    grid-template-columns: 1fr;
+}
+
+.catalogue-list[data-view-mode="grille"] {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+}
+
+.catalogue-list[data-view-mode="grille"] .annonce-card {
+    height: 100%;
+}
+
+.catalogue-list[data-view-mode="grille"] .annonce-card__layout {
+    height: 100%;
+}
+
+[data-view-mode="cartouche"] .annonce-card__title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-view-mode="grille"] .annonce-card__title {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+[data-view-mode="cartouche"] .annonce-card__layout {
+    flex-direction: row;
+}
+
+[data-view-mode="cartouche"] .annonce-card__image {
+    width: 25%;
+    min-width: 9rem;
+    max-width: 16rem;
+    align-self: stretch;
+}
+
+[data-view-mode="grille"] .annonce-card__layout {
+    flex-direction: column;
+}
+
+[data-view-mode="grille"] .annonce-card__image {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+}
+
+[data-view-mode="grille"] .annonce-card__compact-hide {
+    display: none;
+}
+
+@media (max-width: 639.98px) {
+    /* Sur téléphone : on force la présentation « grille » quel que soit le mode mémorisé. */
+    .catalogue-list[data-view-mode] {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        grid-auto-rows: 1fr;
+        align-items: stretch;
+    }
+
+    .catalogue-list .annonce-card,
+    .catalogue-list .annonce-card__layout {
+        height: 100%;
+    }
+
+    .catalogue-list .annonce-card__layout {
+        flex-direction: column;
+    }
+
+    .catalogue-list .annonce-card__image {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+    }
+
+    .catalogue-list .annonce-card__compact-hide {
+        display: none;
+    }
+}
+
+[data-categorie-field][hidden],
+[data-transaction-field][hidden],
+[data-bien-mode-field][hidden],
+.annonce-card[hidden] {
+    display: none !important;
+}
+
+.annonce-card a.annonce-card__layout {
+    color: inherit;
+    text-decoration: none;
+}

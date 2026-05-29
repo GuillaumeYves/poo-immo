@@ -6,8 +6,9 @@ namespace App\Config;
 
 use RuntimeException;
 
-/**
- * Charge le .env pour peupler les variables d'environnement
+/* *
+ * Charge les variables d'environnement à partir d'un fichier .env
+ * et fournit des méthodes pour accéder à ces variables.
  */
 final class EnvLoader
 {
