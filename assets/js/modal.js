@@ -9,7 +9,6 @@
         root.classList.remove('hidden');
         root.classList.add('flex');
         root.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
         requestAnimationFrame(() => {
             backdrop.classList.remove('opacity-0');
             backdrop.classList.add('opacity-100');
@@ -28,7 +27,6 @@
             root.classList.remove('flex');
             root.setAttribute('aria-hidden', 'true');
             content.innerHTML = '';
-            document.body.style.overflow = '';
         }, 200);
     }
 
