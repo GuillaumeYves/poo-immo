@@ -53,6 +53,7 @@ Puis ouvrir `http://localhost:8000`.
 ```text
 poo-immo/
 |-- index.php
+|-- routes.php
 |-- assets/
 |   |-- css/app.css
 |   `-- js/
@@ -89,15 +90,15 @@ L'autoloader de `src/autoload.php` mappe `App\` vers `src/`.
 `index.php` est le front controller. Toutes les requêtes web passent par lui.
 
 1. `index.php` charge l'autoloader.
-2. Il instancie la base, les repositories, les services, les presenters, le renderer et les controllers.
+2. Il charge `routes.php`.
 3. Il crée une `Request` avec `Request::fromGlobals()`.
-4. Il lit `?action=...`, avec `index` par défaut.
-5. Il choisit le controller :
+4. `routes.php` instancie la base, les repositories, les services, les presenters, le renderer et les controllers.
+5. `routes.php` lit `?action=...`, avec `index` par défaut, puis choisit le controller :
    - `ExportController` pour `?action=export` ou `?export=...`
    - `BienController` pour les actions de biens libres
    - `AnnonceController` pour le catalogue et le CRUD d'annonces
 6. Le controller retourne une `Response`.
-7. `Response::send()` envoie le statut, les headers, puis le contenu.
+7. `index.php` appelle `Response::send()` pour envoyer le statut, les headers, puis le contenu.
 
 `Request` encapsule `$_GET`, `$_POST` et `$_SERVER`.
 `Response` encapsule le corps, le code HTTP et les headers.
@@ -177,7 +178,8 @@ Le code est séparé en trois zones :
 ### Front Controller
 
 `index.php` est l'unique point d'entrée HTTP.
-Il compose les dépendances au bord de l'application puis délègue au bon controller.
+Il transforme les superglobales en `Request`, charge `routes.php`, puis envoie la `Response`.
+`routes.php` compose les dépendances au bord de l'application puis délègue au bon controller.
 
 ### Repository
 
