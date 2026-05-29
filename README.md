@@ -1,4 +1,8 @@
-# poo-immo
+<p align="center">
+  <img src="https://raw.githubusercontent.com/GuillaumeYves/poo-immo/main/assets/images/poo-immo.png" alt="logo poo-immo" width="25%"/>
+</p>
+
+<h1 align="center">POO-Immo</h1>
 
 Application PHP orientée objet pour gérer un catalogue d'annonces immobilières avec MySQL.
 Le projet suit une architecture MVC simple, avec CRUD d'annonces, création de biens libres, recherche live, tri, filtres et exports JSON / CSV.
