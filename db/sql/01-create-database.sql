@@ -1,3 +1,4 @@
+/* Création de la bdd  */
 DROP DATABASE IF EXISTS `poo_immo`;
 
 CREATE DATABASE `poo_immo`

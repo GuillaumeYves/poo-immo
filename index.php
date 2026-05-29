@@ -4,97 +4,108 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/autoload.php';
 
-use App\Database\AnnonceRepository;
-use App\Exporter\CsvExporter;
-use App\Exporter\ExporterInterface;
-use App\Exporter\JsonExporter;
-use App\Formatter\MoneyFormatter;
-use App\Presenter\AnnoncePresenter;
-use App\Presenter\CataloguePresenter;
+use App\Controller\AnnonceController;
+use App\Controller\BienController;
+use App\Controller\ExportController;
+use App\Http\Request;
+use App\Model\Annonce\AnnonceFactory;
+use App\Model\Bien\BienFactory;
+use App\Model\Exporter\BienCsvExporter;
+use App\Model\Exporter\BienJsonExporter;
+use App\Model\Exporter\CsvExporter;
+use App\Model\Exporter\JsonExporter;
+use App\Model\Form\BienFormValidator;
+use App\Model\Form\AnnonceFormMapper;
+use App\Model\Form\AnnonceFormValidator;
+use App\Model\Form\DecimalParser;
+use App\Model\Form\ExportFilterExtractor;
+use App\Model\Formatter\MoneyFormatter;
+use App\Model\Logger\EtatLogger;
+use App\Model\Logger\FileLogger;
+use App\Model\Logger\LoyerLogger;
+use App\Model\Logger\PrixLogger;
+use App\Model\Repository\Database;
+use App\Model\Repository\PdoAnnonceRepository;
+use App\Model\Repository\PdoBienRepository;
+use App\Model\Service\EtatService;
+use App\Model\Service\LoyerService;
+use App\Model\Service\PrixService;
+use App\View\AnnoncePresenter;
+use App\View\BienPresenter;
+use App\View\CataloguePresenter;
+use App\View\ViewRenderer;
 
-$repository = new AnnonceRepository();
-$presenter  = new CataloguePresenter(new AnnoncePresenter(new MoneyFormatter()));
+/*
+ * Point d'entrée de l'application.
+ * Il initialise les composants nécessaires, 
+ * tels que les repositories, les services, les validateurs, et les contrôleurs.
+ * Ensuite, il traite la requête HTTP entrante et délègue le travail au contrôleur approprié, 
+ * en fonction des paramètres de la requête.
+ */
 
-/** @var ExporterInterface[] $exporters */
-$exporters = [];
-foreach ([new JsonExporter(), new CsvExporter()] as $exporter) {
-    $exporters[$exporter->getFormat()] = $exporter;
-}
+$database         = Database::getInstance();
+$repository       = new PdoAnnonceRepository($database, new AnnonceFactory());
+$bienRepository   = new PdoBienRepository($database, new BienFactory());
+$annoncePresenter = new AnnoncePresenter(new MoneyFormatter());
+$views            = new ViewRenderer(__DIR__ . '/views');
 
-$exportFormat = $_GET['export'] ?? null;
-if (is_string($exportFormat) && isset($exporters[$exportFormat])) {
-    $exporter = $exporters[$exportFormat];
-    $payload  = $exporter->export($repository->findAll());
+$prixService = new PrixService($repository);
+$prixService->subscribe(new PrixLogger(new FileLogger(__DIR__ . '/logs/prix.log')));
 
-    header('Content-Type: ' . $exporter->getContentType());
-    header('Content-Disposition: attachment; filename="' . $exporter->getFilename() . '"');
-    echo $payload;
-    exit;
-}
+$loyerService = new LoyerService();
+$loyerService->subscribe(new LoyerLogger(new FileLogger(__DIR__ . '/logs/loyer.log')));
 
-$catalogue = $presenter->presenter($repository->findAll());
+$etatService = new EtatService();
+$etatService->subscribe(new EtatLogger(new FileLogger(__DIR__ . '/logs/etat.log')));
 
-?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <script src="assets/js/recherche.js" defer></script>
-</head>
-<body>
+$decimals  = new DecimalParser();
+$bienValidator = new BienFormValidator($decimals);
+$validator = new AnnonceFormValidator($decimals, $bienValidator);
+$mapper    = new AnnonceFormMapper($decimals, $validator);
+$filters   = new ExportFilterExtractor($decimals);
 
-<section class="catalogue">
-    <h2><?= htmlspecialchars($catalogue['entete'], ENT_QUOTES, 'UTF-8') ?></h2>
+$annonceController = new AnnonceController(
+    $repository,
+    $bienRepository,
+    $annoncePresenter,
+    new CataloguePresenter($annoncePresenter),
+    $views,
+    $prixService,
+    $loyerService,
+    $etatService,
+    $validator,
+    $mapper,
+);
 
-    <nav class="exports">
-        <?php foreach ($exporters as $format => $exporter): ?>
-            <a class="export export--<?= htmlspecialchars($format, ENT_QUOTES, 'UTF-8') ?>"
-               href="?export=<?= htmlspecialchars($format, ENT_QUOTES, 'UTF-8') ?>">
-                <button type="button">Exporter en <?= strtoupper(htmlspecialchars($format, ENT_QUOTES, 'UTF-8')) ?></button>
-            </a>
-        <?php endforeach; ?>
-    </nav>
+$bienController = new BienController(
+    $bienRepository,
+    new BienPresenter(),
+    $views,
+    $bienValidator,
+);
 
-    <form class="recherche" role="search" onsubmit="return false">
-        <label for="recherche-input">Rechercher :</label>
-        <input type="search"
-               id="recherche-input"
-               name="q"
-               autocomplete="off"
-               spellcheck="false"
-               placeholder="Exemple : Lyon">
-        <span class="recherche__compteur" id="recherche-compteur"></span>
-    </form>
+$exportController = new ExportController(
+    $repository,
+    $bienRepository,
+    $views,
+    [
+        'json' => new JsonExporter(),
+        'csv'  => new CsvExporter(),
+    ],
+    [
+        'json' => new BienJsonExporter(),
+        'csv'  => new BienCsvExporter(),
+    ],
+    $filters,
+    $decimals,
+);
 
-    <div class="catalogue__liste" id="catalogue-liste">
-        <?php foreach ($catalogue['annonces'] as $i => $annonce): ?>
-            <?php if ($i > 0): ?><hr><?php endif; ?>
-            <article class="annonce annonce--<?= strtolower($annonce['transaction']) ?> annonce--etat-<?= htmlspecialchars($annonce['etat'], ENT_QUOTES, 'UTF-8') ?>"
-                     data-titre="<?= htmlspecialchars($annonce['titre'], ENT_QUOTES, 'UTF-8') ?>">
-                <h3><?= htmlspecialchars($annonce['titre'], ENT_QUOTES, 'UTF-8') ?></h3>
-                <p class="annonce__meta">
-                    <?php foreach ($annonce['meta'] as $j => $ligne): ?>
-                        <?php if ($j > 0): ?><br><?php endif; ?>
-                        <?= htmlspecialchars($ligne, ENT_QUOTES, 'UTF-8') ?>
-                    <?php endforeach; ?>
-                </p>
-                <ul>
-                    <?php foreach ($annonce['attributs'] as $attr): ?>
-                        <?php $label = $attr[0]; $valeur = $attr[1]; $valeurHtml = $attr[2] ?? null; ?>
-                        <li>
-                            <strong><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?> :</strong>
-                            <?php if ($valeurHtml !== null): ?>
-                                <?= $valeurHtml ?>
-                            <?php else: ?>
-                                <?= htmlspecialchars($valeur, ENT_QUOTES, 'UTF-8') ?>
-                            <?php endif; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </article>
-        <?php endforeach; ?>
-    </div>
-</section>
+$request = Request::fromGlobals();
+$action = $request->query('action', 'index') ?? 'index';
+$controller = match (true) {
+    $request->query('export') !== null || $action === 'export' => $exportController,
+    in_array($action, ['biens', 'bien_create', 'bien_store'], true) => $bienController,
+    default => $annonceController,
+};
 
-</body>
-</html>
+$controller->dispatch($request)->send();

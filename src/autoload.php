@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+/**
+ * Point d'entrée de l'autoloading des classes de l'application.
+ */
 spl_autoload_register(static function (string $class): void {
     $prefix  = 'App\\';
     $baseDir = __DIR__ . DIRECTORY_SEPARATOR;
