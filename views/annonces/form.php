@@ -86,7 +86,6 @@ $lockedCls  = $isEdit ? $readonlyClass : $inputClass;
                 <label class="block" data-transaction-field="vente">
                     <span class="<?= $labelClass ?>">Prix actuel (€)</span>
                     <input name="prix_courant" value="<?= $value('prix_courant') ?>" inputmode="decimal" placeholder="250000.00" class="<?= $inputClass ?>">
-                    <span class="mt-1 block text-[0.7rem] text-stone-400">Toute différence avec le prix initial est journalisée et fait apparaître un badge variation.</span>
                     <?= $error('prix_courant') ?>
                 </label>
             <?php else: ?>
